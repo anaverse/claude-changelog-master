@@ -1,0 +1,188 @@
+import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { ChevronDown, ChevronRight, Copy, Check, Volume2, Loader2, Square } from 'lucide-react';
+import type { ChangelogVersion } from '../types';
+
+interface ChangelogViewProps {
+  versions: ChangelogVersion[];
+  rawMarkdown: string | null;
+  onGenerateAudio: (text: string, label: string) => void;
+  generatingAudioFor: string | null;
+  playingAudioFor: string | null;
+  onStopAudio: () => void;
+}
+
+export function ChangelogView({
+  versions,
+  rawMarkdown,
+  onGenerateAudio,
+  generatingAudioFor,
+  playingAudioFor,
+  onStopAudio,
+}: ChangelogViewProps) {
+  const [expandedVersions, setExpandedVersions] = useState<Set<string>>(
+    new Set(versions.slice(0, 3).map((v) => v.version))
+  );
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
+
+  const toggleVersion = (version: string) => {
+    setExpandedVersions((prev) => {
+      const next = new Set(prev);
+      if (next.has(version)) {
+        next.delete(version);
+      } else {
+        next.add(version);
+      }
+      return next;
+    });
+  };
+
+  const copyToClipboard = async (text: string, id: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedItem(id);
+    setTimeout(() => setCopiedItem(null), 2000);
+  };
+
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case 'feature':
+        return '✨';
+      case 'fix':
+        return '🔧';
+      case 'removal':
+        return '⚠️';
+      case 'breaking':
+        return '🚨';
+      default:
+        return '•';
+    }
+  };
+
+  const getVersionText = (version: ChangelogVersion) => {
+    const header = `Version ${version.version}${version.date ? `, released ${version.date}` : ''}.`;
+    const items = version.items.map((item) => {
+      const typeLabel = item.type === 'feature' ? 'New feature' :
+        item.type === 'fix' ? 'Bug fix' :
+        item.type === 'removal' ? 'Removal' :
+        item.type === 'breaking' ? 'Breaking change' : 'Update';
+      return `${typeLabel}: ${item.content}`;
+    }).join('. ');
+    return `${header} Changes include: ${items}`;
+  };
+
+  const handleAudioClick = (e: React.MouseEvent, version: ChangelogVersion) => {
+    e.stopPropagation();
+    const label = `v${version.version}`;
+
+    if (playingAudioFor === label) {
+      onStopAudio();
+    } else {
+      const text = getVersionText(version);
+      onGenerateAudio(text, label);
+    }
+  };
+
+  if (!rawMarkdown && versions.length === 0) {
+    return (
+      <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+        No changelog data available
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto p-4 space-y-4">
+      {versions.map((version) => {
+        const label = `v${version.version}`;
+        const isGenerating = generatingAudioFor === label;
+        const isPlaying = playingAudioFor === label;
+
+        return (
+          <div
+            key={version.version}
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800"
+          >
+            <div className="flex items-center bg-gray-50 dark:bg-gray-800">
+              <button
+                onClick={() => toggleVersion(version.version)}
+                className="flex-1 px-4 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {expandedVersions.has(version.version) ? (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-gray-500" />
+                  )}
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    v{version.version}
+                  </span>
+                  {version.date && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {version.date}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {version.items.length} changes
+                </span>
+              </button>
+
+              <button
+                onClick={(e) => handleAudioClick(e, version)}
+                disabled={isGenerating}
+                className={`p-3 mr-2 rounded-lg transition-colors ${
+                  isPlaying
+                    ? 'bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400'
+                    : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-amber-600'
+                } disabled:opacity-50`}
+                aria-label={isPlaying ? 'Stop audio' : 'Generate audio for this version'}
+                title={isPlaying ? 'Stop' : 'Listen to this release'}
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isPlaying ? (
+                  <Square className="w-5 h-5 fill-current" />
+                ) : (
+                  <Volume2 className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+
+            {expandedVersions.has(version.version) && (
+              <div className="p-4 space-y-2">
+                {version.items.map((item, idx) => {
+                  const itemId = `${version.version}-${idx}`;
+                  return (
+                    <div
+                      key={itemId}
+                      className="group flex items-start gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <span className="flex-shrink-0 text-lg">{getItemIcon(item.type)}</span>
+                      <div className="flex-1 min-w-0 prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {item.content}
+                        </ReactMarkdown>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(item.content, itemId)}
+                        className="flex-shrink-0 p-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-opacity"
+                        aria-label="Copy to clipboard"
+                      >
+                        {copiedItem === itemId ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
