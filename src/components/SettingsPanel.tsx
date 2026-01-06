@@ -158,7 +158,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2.5 text-charcoal-600 dark:text-charcoal-400 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors"
+        className="p-2.5 text-charcoal-600 dark:text-cream-200 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors"
         aria-label="Settings"
         title="Settings"
       >

@@ -105,7 +105,7 @@ export function Header({
             <button
               onClick={onRefresh}
               disabled={isLoading}
-              className="p-2.5 text-charcoal-600 dark:text-charcoal-300 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors disabled:opacity-50"
+              className="p-2.5 text-charcoal-600 dark:text-cream-200 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors disabled:opacity-50"
               aria-label="Refresh changelog"
               title="Refresh"
             >
@@ -114,7 +114,7 @@ export function Header({
 
             <button
               onClick={onToggleTheme}
-              className="p-2.5 text-charcoal-600 dark:text-charcoal-300 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors relative overflow-hidden"
+              className="p-2.5 text-charcoal-600 dark:text-cream-200 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors relative overflow-hidden"
               aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
               title={theme === 'light' ? 'Dark mode' : 'Light mode'}
             >
@@ -139,7 +139,7 @@ export function Header({
             <button
               onClick={onSendEmail}
               disabled={isEmailSending}
-              className="p-2.5 text-charcoal-600 dark:text-charcoal-300 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors disabled:opacity-50"
+              className="p-2.5 text-charcoal-600 dark:text-cream-200 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors disabled:opacity-50"
               aria-label="Send changelog to email"
               title="Send to email"
             >

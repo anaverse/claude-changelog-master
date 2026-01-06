@@ -134,7 +134,7 @@ export function AudioPlayer({
 
               <button
                 onClick={onDownload}
-                className="p-2.5 text-charcoal-500 dark:text-charcoal-400 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors flex-shrink-0"
+                className="p-2.5 text-charcoal-500 dark:text-cream-200 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors flex-shrink-0"
                 aria-label="Download audio"
               >
                 <Download className="w-4 h-4" />
