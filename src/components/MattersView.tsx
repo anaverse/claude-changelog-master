@@ -323,7 +323,7 @@ export function MattersView({
                     </span>
                     <div>
                       <span className="font-medium text-charcoal-900 dark:text-cream-50">{removal.feature}</span>
-                      <span className="text-charcoal-600 dark:text-charcoal-400"> — {removal.why}</span>
+                      <span className="text-charcoal-600 dark:text-cream-300"> — {removal.why}</span>
                     </div>
                   </li>
                 ))}
@@ -431,7 +431,7 @@ function Section({ title, icon, items, color, onAudio, isGenerating, isPlaying }
     red: 'border-coral-600 bg-coral-500/10 dark:bg-coral-600/10 text-coral-600 dark:text-coral-400',
     orange: 'border-coral-500 bg-coral-400/10 dark:bg-coral-500/10 text-coral-500 dark:text-coral-400',
     teal: 'border-teal-500 bg-teal-500/10 dark:bg-teal-600/10 text-teal-600 dark:text-teal-400',
-    gray: 'border-charcoal-400 bg-cream-100 dark:bg-charcoal-700 text-charcoal-500 dark:text-charcoal-400',
+    gray: 'border-charcoal-400 bg-cream-100 dark:bg-charcoal-700 text-charcoal-500 dark:text-cream-300',
     purple: 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
     blue: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
     indigo: 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400',
@@ -473,7 +473,7 @@ function Section({ title, icon, items, color, onAudio, isGenerating, isPlaying }
       <ul className="space-y-1">
         {items.map((item, idx) => (
           <li key={idx} className="text-charcoal-700 dark:text-cream-200 flex items-start gap-2">
-            <span className="text-charcoal-400">•</span>
+            <span className="text-charcoal-400 dark:text-cream-400">•</span>
             <span>{item}</span>
           </li>
         ))}
