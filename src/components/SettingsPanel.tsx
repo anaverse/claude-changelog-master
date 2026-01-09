@@ -39,6 +39,7 @@ const NOTIFICATION_INTERVALS = [
 export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaultTheme, onDefaultThemeChange }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(false);
+  const [alwaysSendEmail, setAlwaysSendEmail] = useState(false);
   const [notificationCheckInterval, setNotificationCheckInterval] = useState(0);
   const [notificationVoice, setNotificationVoice] = useState('Charon');
   const [monitorStatus, setMonitorStatus] = useState<{
@@ -75,6 +76,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
       const status = await statusRes.json();
 
       setEmailNotificationsEnabled(settings.emailNotificationsEnabled === 'true');
+      setAlwaysSendEmail(settings.alwaysSendEmail === 'true');
       setNotificationCheckInterval(parseInt(settings.notificationCheckInterval) || 0);
       setNotificationVoice(settings.notificationVoice || 'Charon');
       setMonitorStatus(status);
@@ -103,6 +105,11 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
   const handleEmailNotificationsChange = async (enabled: boolean) => {
     setEmailNotificationsEnabled(enabled);
     await saveSetting('emailNotificationsEnabled', enabled.toString());
+  };
+
+  const handleAlwaysSendEmailChange = async (enabled: boolean) => {
+    setAlwaysSendEmail(enabled);
+    await saveSetting('alwaysSendEmail', enabled.toString());
   };
 
   const handleNotificationIntervalChange = async (interval: number) => {
@@ -264,6 +271,31 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                           emailNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Always send email toggle */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <span className="text-sm text-charcoal-700 dark:text-cream-200">
+                        Send email on every check
+                      </span>
+                      <p className="text-xs text-charcoal-500 dark:text-charcoal-400">
+                        Even when no new version is released
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleAlwaysSendEmailChange(!alwaysSendEmail)}
+                      disabled={!emailNotificationsEnabled}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+                        alwaysSendEmail ? 'bg-teal-500' : 'bg-cream-400 dark:bg-charcoal-500'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          alwaysSendEmail ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
                     </button>

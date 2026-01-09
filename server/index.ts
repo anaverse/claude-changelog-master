@@ -360,21 +360,32 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
     const lastKnown = getLastKnownVersion(source.id);
     console.log(`[Monitor] ${source.name}: Latest: ${latest.version}, Last known: ${lastKnown}`);
 
-    if (lastKnown === latest.version) {
-      console.log(`[Monitor] ${source.name}: No new version detected`);
-      return;
-    }
-
-    console.log(`[Monitor] ${source.name}: New version detected: ${latest.version}`);
-    saveVersion(latest.version, source.id);
-
-    // Check if notifications are enabled
+    // Check settings
     const settingsStmt = db.prepare('SELECT value FROM settings WHERE key = ?');
     const notifyEnabled = settingsStmt.get('emailNotificationsEnabled') as { value: string } | undefined;
+    const alwaysSendEmail = settingsStmt.get('alwaysSendEmail') as { value: string } | undefined;
 
     if (notifyEnabled?.value !== 'true') {
       console.log(`[Monitor] Email notifications disabled for ${source.name}, skipping`);
+      if (lastKnown !== latest.version) {
+        saveVersion(latest.version, source.id);
+      }
       return;
+    }
+
+    const isNewVersion = lastKnown !== latest.version;
+    const shouldSendEmail = isNewVersion || alwaysSendEmail?.value === 'true';
+
+    if (!shouldSendEmail) {
+      console.log(`[Monitor] ${source.name}: No new version and always-send disabled`);
+      return;
+    }
+
+    if (isNewVersion) {
+      console.log(`[Monitor] ${source.name}: New version detected: ${latest.version}`);
+      saveVersion(latest.version, source.id);
+    } else {
+      console.log(`[Monitor] ${source.name}: Sending scheduled email for current version`);
     }
 
     // Analyze the changelog
