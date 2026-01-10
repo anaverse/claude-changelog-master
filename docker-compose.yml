@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Pass API key at build time for Vite to embed in frontend
+        VITE_GEMINI_API_KEY: ${VITE_GEMINI_API_KEY}
+    ports:
+      - "3001:3001"
+    volumes:
+      # Persist SQLite database
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      # Required
+      - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+      # Optional - Email notifications (Resend)
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - NOTIFY_EMAIL=${NOTIFY_EMAIL}
+      # Optional - SMS notifications (Twilio)
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - NOTIFY_PHONE=${NOTIFY_PHONE}
+      # Optional - Customization
+      - VITE_CHANGELOG_CACHE_DURATION=${VITE_CHANGELOG_CACHE_DURATION:-3600000}
+      - VITE_VOICE_PREFERENCE=${VITE_VOICE_PREFERENCE:-Charon}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/monitor/status"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3

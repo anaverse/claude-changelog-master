@@ -67,21 +67,12 @@ function App() {
   }, []);
 
   const handleSendEmail = useCallback(async () => {
-    if (!analysis) {
-      setToast({ message: 'Analysis not available yet', type: 'error' });
-      return;
-    }
-
     setIsEmailSending(true);
     try {
-      const success = await sendChangelogEmail({
-        version: latestVersion,
-        tldr: analysis.tldr,
-        analysis,
-      });
+      const success = await sendChangelogEmail();
 
       if (success) {
-        setToast({ message: 'Changelog sent to your email!', type: 'success' });
+        setToast({ message: 'Changelog sent to your email with audio!', type: 'success' });
       } else {
         setToast({ message: 'Failed to send email. Please try again.', type: 'error' });
       }
@@ -90,7 +81,7 @@ function App() {
     } finally {
       setIsEmailSending(false);
     }
-  }, [analysis, latestVersion]);
+  }, []);
 
   const handleGenerateAudio = useCallback(
     async (text: string, label: string) => {
@@ -104,7 +95,7 @@ function App() {
   }, [download, latestVersion, playingFor]);
 
   return (
-    <div className="min-h-screen bg-cream-50 dark:bg-charcoal-900 transition-colors duration-500">
+    <div className="min-h-screen bg-brutal">
       <Header
         version={latestVersion}
         lastFetched={lastFetched}
@@ -129,12 +120,12 @@ function App() {
       <main className="pb-24">
         {error ? (
           <div className="max-w-4xl mx-auto p-8">
-            <div className="bg-coral-400/10 dark:bg-coral-600/10 border border-coral-400 dark:border-coral-600 rounded-xl p-5 text-coral-700 dark:text-coral-400">
-              <p className="font-semibold">Error loading changelog</p>
-              <p className="text-sm mt-1 opacity-80">{error}</p>
+            <div className="alert-brutal alert-brutal-error">
+              <p className="heading-brutal heading-brutal-sm">Error Loading Changelog</p>
+              <p className="text-sm mt-2 text-brutal-secondary">{error}</p>
               <button
                 onClick={refresh}
-                className="mt-4 px-5 py-2.5 bg-coral-600 text-white rounded-xl hover:bg-coral-700 transition-all text-sm font-medium shadow-sm hover:shadow-md"
+                className="btn-brutal-primary mt-4"
               >
                 Try Again
               </button>
@@ -183,14 +174,14 @@ function App() {
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Floating Chat Button */}
+      {/* Floating Chat Button - Neo-brutalist */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-coral-600 hover:bg-coral-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-xl z-30"
+        className="fixed bottom-24 right-6 w-14 h-14 bg-accent-coral border-brutal shadow-brutal flex items-center justify-center transition-all duration-100 hover:shadow-brutal-lg hover:translate-x-[-4px] hover:translate-y-[-4px] active:translate-x-0 active:translate-y-0 active:shadow-brutal-sm z-30"
         aria-label="Open changelog chat"
         title="Ask about changelogs"
       >
-        <MessageSquare className="w-6 h-6" />
+        <MessageSquare className="w-6 h-6 text-white" />
       </button>
 
       {/* Chat Panel */}

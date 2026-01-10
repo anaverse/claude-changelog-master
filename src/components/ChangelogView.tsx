@@ -85,7 +85,7 @@ export function ChangelogView({
 
   if (!rawMarkdown && versions.length === 0) {
     return (
-      <div className="p-8 text-center text-charcoal-400 dark:text-charcoal-500">
+      <div className="p-8 text-center text-brutal-secondary font-brutal uppercase tracking-wide">
         No changelog data available
       </div>
     );
@@ -101,29 +101,29 @@ export function ChangelogView({
         return (
           <div
             key={version.version}
-            className="border border-cream-300 dark:border-charcoal-500 rounded-xl overflow-hidden bg-white dark:bg-charcoal-800 transition-colors duration-500"
+            className="card-brutal overflow-hidden"
           >
-            <div className="flex items-center bg-cream-100 dark:bg-charcoal-700">
+            <div className="flex items-center bg-brutal-secondary/10 border-b-brutal">
               <button
                 onClick={() => toggleVersion(version.version)}
-                className="flex-1 px-4 py-3 flex items-center justify-between hover:bg-cream-200 dark:hover:bg-charcoal-600 transition-colors"
+                className="flex-1 px-4 py-3 flex items-center justify-between hover:bg-brutal-secondary/20 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   {expandedVersions.has(version.version) ? (
-                    <ChevronDown className="w-5 h-5 text-charcoal-500 dark:text-charcoal-400" />
+                    <ChevronDown className="w-5 h-5 text-brutal-secondary" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 text-charcoal-500 dark:text-charcoal-400" />
+                    <ChevronRight className="w-5 h-5 text-brutal-secondary" />
                   )}
-                  <span className="font-semibold text-charcoal-900 dark:text-cream-50">
+                  <span className="heading-brutal heading-brutal-sm">
                     v{version.version}
                   </span>
                   {version.date && (
-                    <span className="text-sm text-charcoal-500 dark:text-charcoal-400">
+                    <span className="text-sm text-brutal-secondary font-brutal">
                       {version.date}
                     </span>
                   )}
                 </div>
-                <span className="text-sm text-charcoal-500 dark:text-charcoal-400">
+                <span className="tag-brutal">
                   {version.items.length} changes
                 </span>
               </button>
@@ -131,10 +131,10 @@ export function ChangelogView({
               <button
                 onClick={(e) => handleAudioClick(e, version)}
                 disabled={isGenerating}
-                className={`p-3 mr-2 rounded-xl transition-colors ${
+                className={`p-3 mr-2 transition-colors ${
                   isPlaying
-                    ? 'bg-coral-400/20 dark:bg-coral-600/20 text-coral-600 dark:text-coral-400'
-                    : 'text-charcoal-500 hover:bg-cream-200 dark:hover:bg-charcoal-600 hover:text-coral-600'
+                    ? 'bg-accent-coral text-white'
+                    : 'text-brutal-secondary hover:bg-brutal-secondary/20 hover:text-accent-coral'
                 } disabled:opacity-50`}
                 aria-label={isPlaying ? 'Stop audio' : 'Generate audio for this version'}
                 title={isPlaying ? 'Stop' : 'Listen to this release'}
@@ -156,21 +156,21 @@ export function ChangelogView({
                   return (
                     <div
                       key={itemId}
-                      className="group flex items-start gap-2 p-2 rounded-lg hover:bg-cream-100 dark:hover:bg-charcoal-700 transition-colors"
+                      className="group flex items-start gap-2 p-2 hover:bg-brutal-secondary/10 transition-colors"
                     >
                       <span className="flex-shrink-0 text-lg">{getItemIcon(item.type)}</span>
-                      <div className="flex-1 min-w-0 prose prose-sm dark:prose-invert max-w-none text-charcoal-700 dark:text-cream-200">
+                      <div className="flex-1 min-w-0 prose prose-sm dark:prose-invert max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {item.content}
                         </ReactMarkdown>
                       </div>
                       <button
                         onClick={() => copyToClipboard(item.content, itemId)}
-                        className="flex-shrink-0 p-1 opacity-0 group-hover:opacity-100 text-charcoal-400 hover:text-charcoal-600 dark:hover:text-cream-200 transition-opacity"
+                        className="flex-shrink-0 p-1 opacity-0 group-hover:opacity-100 text-brutal-secondary hover:text-accent-coral transition-opacity"
                         aria-label="Copy to clipboard"
                       >
                         {copiedItem === itemId ? (
-                          <Check className="w-4 h-4 text-teal-500" />
+                          <Check className="w-4 h-4 text-accent-green" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}

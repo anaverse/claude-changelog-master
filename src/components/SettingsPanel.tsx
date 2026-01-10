@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, X, Clock, Bell, Volume2, Loader2, CheckCircle, Mail, AlertCircle, Moon } from 'lucide-react';
+import { Settings, X, Clock, Bell, Volume2, Loader2, CheckCircle, Mail, AlertCircle, Moon, MessageSquare } from 'lucide-react';
 import { VOICE_OPTIONS } from '../types';
 
 interface SettingsPanelProps {
@@ -39,6 +39,7 @@ const NOTIFICATION_INTERVALS = [
 export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaultTheme, onDefaultThemeChange }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(false);
+  const [smsNotificationsEnabled, setSmsNotificationsEnabled] = useState(false);
   const [alwaysSendEmail, setAlwaysSendEmail] = useState(false);
   const [notificationCheckInterval, setNotificationCheckInterval] = useState(0);
   const [notificationVoice, setNotificationVoice] = useState('Charon');
@@ -76,10 +77,14 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
       const status = await statusRes.json();
 
       setEmailNotificationsEnabled(settings.emailNotificationsEnabled === 'true');
+      setSmsNotificationsEnabled(settings.smsNotificationsEnabled === 'true');
       setAlwaysSendEmail(settings.alwaysSendEmail === 'true');
       setNotificationCheckInterval(parseInt(settings.notificationCheckInterval) || 0);
       setNotificationVoice(settings.notificationVoice || 'Charon');
       setMonitorStatus(status);
+      // Sync to localStorage for Header email button access
+      localStorage.setItem('smsNotificationsEnabled', settings.smsNotificationsEnabled === 'true' ? 'true' : 'false');
+      localStorage.setItem('notificationVoice', settings.notificationVoice || 'Charon');
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
@@ -105,6 +110,13 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
   const handleEmailNotificationsChange = async (enabled: boolean) => {
     setEmailNotificationsEnabled(enabled);
     await saveSetting('emailNotificationsEnabled', enabled.toString());
+  };
+
+  const handleSmsNotificationsChange = async (enabled: boolean) => {
+    setSmsNotificationsEnabled(enabled);
+    // Save to localStorage for Header email button access
+    localStorage.setItem('smsNotificationsEnabled', enabled.toString());
+    await saveSetting('smsNotificationsEnabled', enabled.toString());
   };
 
   const handleAlwaysSendEmailChange = async (enabled: boolean) => {
@@ -150,7 +162,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
       const res = await fetch('/api/send-demo-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voice: notificationVoice }),
+        body: JSON.stringify({ voice: notificationVoice, includeSms: smsNotificationsEnabled }),
       });
       if (res.ok) {
         setDemoEmailResult('success');
@@ -169,7 +181,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2.5 text-charcoal-600 dark:text-cream-200 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors"
+        className="p-2.5 text-brutal-secondary hover:text-brutal-primary hover:bg-brutal-secondary/10 transition-colors"
         aria-label="Settings"
         title="Settings"
       >
@@ -182,12 +194,12 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-charcoal-800 rounded-xl shadow-2xl z-50 p-6 max-h-[90vh] overflow-y-auto transition-colors duration-500">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-brutal-elevated border-brutal shadow-brutal z-50 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-charcoal-900 dark:text-cream-50">Settings</h2>
+              <h2 className="heading-brutal heading-brutal-md">Settings</h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 text-charcoal-500 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-lg transition-colors"
+                className="p-1 text-brutal-secondary hover:bg-brutal-secondary/10 transition-colors"
                 aria-label="Close settings"
               >
                 <X className="w-5 h-5" />
@@ -196,28 +208,28 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
 
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-coral-500" />
+                <Loader2 className="w-6 h-6 animate-spin text-accent-coral" />
               </div>
             ) : (
               <div className="space-y-6">
                 {/* Appearance Section */}
                 <div>
-                  <h3 className="flex items-center gap-2 text-sm font-medium text-charcoal-900 dark:text-cream-50 mb-4">
+                  <h3 className="flex items-center gap-2 text-sm font-brutal uppercase tracking-wide text-brutal-primary mb-4">
                     <Moon className="w-4 h-4" />
                     Appearance
                   </h3>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-charcoal-700 dark:text-cream-200">
+                    <span className="text-sm text-brutal-secondary">
                       Use dark mode by default
                     </span>
                     <button
                       onClick={() => onDefaultThemeChange(defaultTheme === 'dark' ? 'light' : 'dark')}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        defaultTheme === 'dark' ? 'bg-teal-500' : 'bg-cream-400 dark:bg-charcoal-500'
+                      className={`relative inline-flex h-6 w-11 items-center border-brutal transition-colors ${
+                        defaultTheme === 'dark' ? 'bg-accent-green' : 'bg-brutal-secondary/30'
                       }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        className={`inline-block h-4 w-4 transform bg-white border-2 border-black transition-transform ${
                           defaultTheme === 'dark' ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
@@ -226,18 +238,18 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                 </div>
 
                 {/* Divider */}
-                <div className="border-t border-cream-300 dark:border-charcoal-500" />
+                <div className="border-t-brutal" />
 
                 {/* Auto-refresh interval */}
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-charcoal-700 dark:text-cream-200 mb-2">
+                  <label className="flex items-center gap-2 text-sm font-brutal uppercase tracking-wide text-brutal-secondary mb-2">
                     <Clock className="w-4 h-4" />
                     Auto-refresh interval (UI)
                   </label>
                   <select
                     value={refreshInterval}
                     onChange={(e) => onRefreshIntervalChange(parseInt(e.target.value))}
-                    className="w-full bg-cream-100 dark:bg-charcoal-700 border border-cream-300 dark:border-charcoal-500 rounded-xl px-4 py-2 text-charcoal-700 dark:text-cream-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-colors"
+                    className="select-brutal w-full"
                   >
                     {INTERVAL_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -248,28 +260,28 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                 </div>
 
                 {/* Divider */}
-                <div className="border-t border-cream-300 dark:border-charcoal-500" />
+                <div className="border-t-brutal" />
 
                 {/* Email Notifications Section */}
                 <div>
-                  <h3 className="flex items-center gap-2 text-sm font-medium text-charcoal-900 dark:text-cream-50 mb-4">
+                  <h3 className="flex items-center gap-2 text-sm font-brutal uppercase tracking-wide text-brutal-primary mb-4">
                     <Bell className="w-4 h-4" />
                     Email Notifications
                   </h3>
 
                   {/* Enable toggle */}
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-charcoal-700 dark:text-cream-200">
+                    <span className="text-sm text-brutal-secondary">
                       Notify me when a new version is released
                     </span>
                     <button
                       onClick={() => handleEmailNotificationsChange(!emailNotificationsEnabled)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        emailNotificationsEnabled ? 'bg-teal-500' : 'bg-cream-400 dark:bg-charcoal-500'
+                      className={`relative inline-flex h-6 w-11 items-center border-brutal transition-colors ${
+                        emailNotificationsEnabled ? 'bg-accent-green' : 'bg-brutal-secondary/30'
                       }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        className={`inline-block h-4 w-4 transform bg-white border-2 border-black transition-transform ${
                           emailNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
@@ -279,22 +291,22 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                   {/* Always send email toggle */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <span className="text-sm text-charcoal-700 dark:text-cream-200">
+                      <span className="text-sm text-brutal-secondary">
                         Send email on every check
                       </span>
-                      <p className="text-xs text-charcoal-500 dark:text-charcoal-400">
+                      <p className="text-xs text-brutal-secondary/70">
                         Even when no new version is released
                       </p>
                     </div>
                     <button
                       onClick={() => handleAlwaysSendEmailChange(!alwaysSendEmail)}
                       disabled={!emailNotificationsEnabled}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
-                        alwaysSendEmail ? 'bg-teal-500' : 'bg-cream-400 dark:bg-charcoal-500'
+                      className={`relative inline-flex h-6 w-11 items-center border-brutal transition-colors disabled:opacity-50 ${
+                        alwaysSendEmail ? 'bg-accent-green' : 'bg-brutal-secondary/30'
                       }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        className={`inline-block h-4 w-4 transform bg-white border-2 border-black transition-transform ${
                           alwaysSendEmail ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
@@ -303,14 +315,14 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
 
                   {/* Check interval */}
                   <div className="mb-4">
-                    <label className="block text-sm text-charcoal-600 dark:text-charcoal-400 mb-1">
+                    <label className="block text-sm text-brutal-secondary mb-1">
                       Check for new versions
                     </label>
                     <select
                       value={notificationCheckInterval}
                       onChange={(e) => handleNotificationIntervalChange(parseInt(e.target.value))}
                       disabled={!emailNotificationsEnabled}
-                      className="w-full bg-cream-100 dark:bg-charcoal-700 border border-cream-300 dark:border-charcoal-500 rounded-xl px-4 py-2 text-charcoal-700 dark:text-cream-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-colors disabled:opacity-50"
+                      className="select-brutal w-full disabled:opacity-50"
                     >
                       {NOTIFICATION_INTERVALS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -322,7 +334,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
 
                   {/* Voice selection for notifications */}
                   <div className="mb-4">
-                    <label className="flex items-center gap-2 text-sm text-charcoal-600 dark:text-charcoal-400 mb-1">
+                    <label className="flex items-center gap-2 text-sm text-brutal-secondary mb-1">
                       <Volume2 className="w-4 h-4" />
                       Audio voice for email attachment
                     </label>
@@ -330,7 +342,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                       value={notificationVoice}
                       onChange={(e) => handleNotificationVoiceChange(e.target.value)}
                       disabled={!emailNotificationsEnabled}
-                      className="w-full bg-cream-100 dark:bg-charcoal-700 border border-cream-300 dark:border-charcoal-500 rounded-xl px-4 py-2 text-charcoal-700 dark:text-cream-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-colors disabled:opacity-50"
+                      className="select-brutal w-full disabled:opacity-50"
                     >
                       {VOICE_OPTIONS.map((voice) => (
                         <option key={voice.name} value={voice.name}>
@@ -342,21 +354,21 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
 
                   {/* Status indicator */}
                   {monitorStatus && (
-                    <div className="p-3 bg-cream-100 dark:bg-charcoal-700/50 rounded-xl text-sm">
+                    <div className="p-3 bg-brutal-secondary/10 border-brutal-thin text-sm">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-charcoal-600 dark:text-charcoal-400">Cron status:</span>
-                        <span className={`flex items-center gap-1 ${monitorStatus.isRunning ? 'text-teal-600' : 'text-charcoal-500'}`}>
-                          <span className={`w-2 h-2 rounded-full ${monitorStatus.isRunning ? 'bg-teal-500 animate-pulse' : 'bg-charcoal-400'}`} />
+                        <span className="text-brutal-secondary">Cron status:</span>
+                        <span className={`flex items-center gap-1 ${monitorStatus.isRunning ? 'text-accent-green' : 'text-brutal-secondary'}`}>
+                          <span className={`w-2 h-2 ${monitorStatus.isRunning ? 'bg-accent-green animate-pulse' : 'bg-brutal-secondary/50'}`} />
                           {monitorStatus.isRunning ? 'Running' : 'Stopped'}
                         </span>
                       </div>
                       {monitorStatus.cronExpression && (
-                        <div className="text-charcoal-500 dark:text-charcoal-400 mb-1">
-                          Schedule: <span className="font-mono text-xs bg-cream-200 dark:bg-charcoal-600 px-1.5 py-0.5 rounded">{monitorStatus.cronExpression}</span>
+                        <div className="text-brutal-secondary mb-1">
+                          Schedule: <span className="font-mono text-xs bg-brutal-secondary/20 px-1.5 py-0.5 border border-black">{monitorStatus.cronExpression}</span>
                         </div>
                       )}
                       {monitorStatus.lastKnownVersion && (
-                        <div className="text-charcoal-500 dark:text-charcoal-400">
+                        <div className="text-brutal-secondary">
                           Last known version: <span className="font-mono">{monitorStatus.lastKnownVersion}</span>
                         </div>
                       )}
@@ -367,7 +379,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                   <button
                     onClick={testNotificationCheck}
                     disabled={testingNotification || !emailNotificationsEnabled}
-                    className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-cream-200 dark:bg-charcoal-700 text-charcoal-700 dark:text-cream-200 rounded-xl hover:bg-cream-300 dark:hover:bg-charcoal-600 transition-colors disabled:opacity-50"
+                    className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-brutal-secondary/10 text-brutal-primary border-brutal-thin hover:bg-brutal-secondary/20 transition-colors disabled:opacity-50 font-brutal uppercase tracking-wide text-sm"
                   >
                     {testingNotification ? (
                       <>
@@ -376,7 +388,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                       </>
                     ) : testResult === 'success' ? (
                       <>
-                        <CheckCircle className="w-4 h-4 text-teal-500" />
+                        <CheckCircle className="w-4 h-4 text-accent-green" />
                         Check complete
                       </>
                     ) : (
@@ -388,7 +400,7 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                   <button
                     onClick={sendDemoEmail}
                     disabled={sendingDemoEmail}
-                    className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-coral-500 hover:bg-coral-600 text-white rounded-xl transition-colors disabled:opacity-50"
+                    className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent-coral text-white border-brutal shadow-brutal-sm transition-all duration-100 hover:shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] disabled:opacity-50 font-brutal uppercase tracking-wide text-sm"
                   >
                     {sendingDemoEmail ? (
                       <>
@@ -414,10 +426,45 @@ export function SettingsPanel({ refreshInterval, onRefreshIntervalChange, defaul
                   </button>
                 </div>
 
+                {/* Divider */}
+                <div className="border-t-brutal" />
+
+                {/* SMS Notifications Section */}
+                <div>
+                  <h3 className="flex items-center gap-2 text-sm font-brutal uppercase tracking-wide text-brutal-primary mb-4">
+                    <MessageSquare className="w-4 h-4" />
+                    SMS Notifications
+                  </h3>
+
+                  {/* Enable toggle */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <span className="text-sm text-brutal-secondary">
+                        Send SMS when new version is released
+                      </span>
+                      <p className="text-xs text-brutal-secondary/70">
+                        Requires Twilio credentials in .env
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleSmsNotificationsChange(!smsNotificationsEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center border-brutal transition-colors ${
+                        smsNotificationsEnabled ? 'bg-accent-green' : 'bg-brutal-secondary/30'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform bg-white border-2 border-black transition-transform ${
+                          smsNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
                 {/* Info */}
-                <div className="p-4 bg-coral-400/10 dark:bg-coral-600/10 rounded-xl border border-coral-400/30 dark:border-coral-600/30">
-                  <p className="text-xs text-coral-700 dark:text-coral-400">
-                    When a new changelog version is detected, you'll receive an email with the AI-generated summary and an audio file attachment.
+                <div className="p-4 bg-accent-coral/10 border-brutal border-l-4 border-l-accent-coral">
+                  <p className="text-xs text-brutal-secondary">
+                    When a new changelog version is detected, you'll receive an email with the AI-generated summary and an audio file attachment. If SMS is enabled, you'll also get a text message.
                   </p>
                 </div>
               </div>

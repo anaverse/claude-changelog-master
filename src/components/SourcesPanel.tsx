@@ -173,7 +173,7 @@ export function SourcesPanel() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2.5 text-charcoal-600 dark:text-cream-200 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors"
+        className="p-2.5 text-brutal-secondary hover:text-brutal-primary hover:bg-brutal-secondary/10 transition-colors"
         aria-label="Changelog Sources"
         title="Changelog Sources"
       >
@@ -186,12 +186,12 @@ export function SourcesPanel() {
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-charcoal-800 rounded-xl shadow-2xl z-50 p-6 max-h-[90vh] overflow-y-auto transition-colors duration-500">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-brutal-elevated border-brutal shadow-brutal z-50 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-charcoal-900 dark:text-cream-50">Changelog Sources</h2>
+              <h2 className="heading-brutal heading-brutal-md">Changelog Sources</h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 text-charcoal-500 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-lg transition-colors"
+                className="p-1 text-brutal-secondary hover:bg-brutal-secondary/10 transition-colors"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
@@ -200,12 +200,12 @@ export function SourcesPanel() {
 
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-coral-500" />
+                <Loader2 className="w-6 h-6 animate-spin text-accent-coral" />
               </div>
             ) : (
               <div className="space-y-4">
                 {error && (
-                  <div className="p-3 bg-coral-400/10 dark:bg-coral-600/10 border border-coral-400/30 dark:border-coral-600/30 rounded-xl flex items-center gap-2 text-coral-600 dark:text-coral-400 text-sm">
+                  <div className="p-3 bg-accent-red/10 border-brutal border-l-4 border-l-accent-red flex items-center gap-2 text-accent-red text-sm">
                     <AlertCircle className="w-4 h-4" />
                     {error}
                   </div>
@@ -216,10 +216,10 @@ export function SourcesPanel() {
                   {sources.map((source) => (
                     <div
                       key={source.id}
-                      className={`p-4 border rounded-xl transition-colors ${
+                      className={`p-4 border-brutal transition-colors ${
                         source.is_active
-                          ? 'border-teal-400/30 dark:border-teal-600/30 bg-teal-500/10 dark:bg-teal-600/10'
-                          : 'border-cream-300 dark:border-charcoal-500 bg-cream-100 dark:bg-charcoal-700/50 opacity-60'
+                          ? 'border-l-4 border-l-accent-green bg-accent-green/10'
+                          : 'bg-brutal-secondary/10 opacity-60'
                       }`}
                     >
                       {editingId === source.id ? (
@@ -229,25 +229,25 @@ export function SourcesPanel() {
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
                             placeholder="Source name"
-                            className="w-full bg-white dark:bg-charcoal-700 border border-cream-300 dark:border-charcoal-500 rounded-xl px-3 py-2 text-sm text-charcoal-700 dark:text-cream-200"
+                            className="input-brutal w-full text-sm"
                           />
                           <input
                             type="url"
                             value={editUrl}
                             onChange={(e) => setEditUrl(e.target.value)}
                             placeholder="Changelog URL"
-                            className="w-full bg-white dark:bg-charcoal-700 border border-cream-300 dark:border-charcoal-500 rounded-xl px-3 py-2 text-sm text-charcoal-700 dark:text-cream-200 font-mono"
+                            className="input-brutal w-full text-sm font-mono"
                           />
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleUpdateSource(source.id)}
-                              className="px-3 py-1.5 bg-coral-500 text-white text-sm rounded-xl hover:bg-coral-600"
+                              className="px-3 py-1.5 bg-accent-coral text-white text-sm border-brutal shadow-brutal-sm hover:shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-100 font-brutal uppercase"
                             >
                               Save
                             </button>
                             <button
                               onClick={() => setEditingId(null)}
-                              className="px-3 py-1.5 bg-cream-200 dark:bg-charcoal-600 text-charcoal-700 dark:text-cream-200 text-sm rounded-xl hover:bg-cream-300 dark:hover:bg-charcoal-500"
+                              className="px-3 py-1.5 bg-brutal-secondary/10 text-brutal-primary text-sm border-brutal-thin hover:bg-brutal-secondary/20 transition-colors font-brutal uppercase"
                             >
                               Cancel
                             </button>
@@ -258,11 +258,11 @@ export function SourcesPanel() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <h3 className="font-medium text-charcoal-900 dark:text-cream-50 truncate">
+                                <h3 className="font-brutal text-brutal-primary truncate">
                                   {source.name}
                                 </h3>
                                 {source.is_active && (
-                                  <span className="flex-shrink-0 px-2 py-0.5 text-xs bg-teal-500/20 text-teal-700 dark:text-teal-400 rounded-full">
+                                  <span className="tag-brutal bg-accent-green text-black">
                                     Active
                                   </span>
                                 )}
@@ -272,14 +272,14 @@ export function SourcesPanel() {
                                   href={source.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-sm text-teal-600 dark:text-teal-400 hover:underline truncate font-mono"
+                                  className="text-sm text-accent-coral hover:underline truncate font-mono"
                                 >
                                   {source.url}
                                 </a>
-                                <ExternalLink className="w-3 h-3 flex-shrink-0 text-teal-600 dark:text-teal-400" />
+                                <ExternalLink className="w-3 h-3 flex-shrink-0 text-accent-coral" />
                               </div>
                               {source.last_version && (
-                                <p className="text-xs text-charcoal-500 dark:text-charcoal-400 mt-1">
+                                <p className="text-xs text-brutal-secondary mt-1">
                                   Last version: <span className="font-mono">{source.last_version}</span>
                                 </p>
                               )}
@@ -287,10 +287,10 @@ export function SourcesPanel() {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => handleToggleActive(source.id, source.is_active)}
-                                className={`p-1.5 rounded-xl transition-colors ${
+                                className={`p-1.5 transition-colors ${
                                   source.is_active
-                                    ? 'text-teal-600 hover:bg-teal-500/20 dark:hover:bg-teal-600/20'
-                                    : 'text-charcoal-400 hover:bg-cream-200 dark:hover:bg-charcoal-600'
+                                    ? 'text-accent-green hover:bg-accent-green/20'
+                                    : 'text-brutal-secondary hover:bg-brutal-secondary/20'
                                 }`}
                                 title={source.is_active ? 'Disable source' : 'Enable source'}
                               >
@@ -298,14 +298,14 @@ export function SourcesPanel() {
                               </button>
                               <button
                                 onClick={() => startEditing(source)}
-                                className="p-1.5 text-charcoal-500 hover:bg-cream-200 dark:hover:bg-charcoal-600 rounded-xl transition-colors"
+                                className="p-1.5 text-brutal-secondary hover:bg-brutal-secondary/20 transition-colors"
                                 title="Edit source"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteSource(source.id)}
-                                className="p-1.5 text-coral-500 hover:bg-coral-400/20 dark:hover:bg-coral-600/20 rounded-xl transition-colors"
+                                className="p-1.5 text-accent-coral hover:bg-accent-coral/20 transition-colors"
                                 title="Delete source"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -318,7 +318,7 @@ export function SourcesPanel() {
                   ))}
 
                   {sources.length === 0 && (
-                    <div className="text-center py-8 text-charcoal-500 dark:text-charcoal-400">
+                    <div className="text-center py-8 text-brutal-secondary font-brutal">
                       No changelog sources configured
                     </div>
                   )}
@@ -326,28 +326,28 @@ export function SourcesPanel() {
 
                 {/* Add source form */}
                 {showAddForm ? (
-                  <div className="p-4 border-2 border-dashed border-coral-400/30 dark:border-coral-600/30 rounded-xl bg-coral-400/10 dark:bg-coral-600/10 space-y-4">
-                    <h3 className="font-medium text-charcoal-900 dark:text-cream-50">Add New Source</h3>
+                  <div className="p-4 border-brutal border-l-4 border-l-accent-coral bg-accent-coral/10 space-y-4">
+                    <h3 className="font-brutal uppercase tracking-wide text-brutal-primary">Add New Source</h3>
 
                     {addError && (
-                      <div className="p-2 bg-coral-400/20 dark:bg-coral-600/20 border border-coral-400/30 dark:border-coral-600/30 rounded-lg text-coral-600 dark:text-coral-400 text-sm">
+                      <div className="p-2 bg-accent-red/20 border-brutal-thin text-accent-red text-sm">
                         {addError}
                       </div>
                     )}
 
                     <div>
-                      <label className="block text-sm text-charcoal-600 dark:text-charcoal-400 mb-1">Name</label>
+                      <label className="block text-sm text-brutal-secondary mb-1">Name</label>
                       <input
                         type="text"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         placeholder="e.g., Antigravity IDE"
-                        className="w-full bg-white dark:bg-charcoal-700 border border-cream-300 dark:border-charcoal-500 rounded-xl px-3 py-2 text-charcoal-700 dark:text-cream-200"
+                        className="input-brutal w-full"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm text-charcoal-600 dark:text-charcoal-400 mb-1">Changelog URL</label>
+                      <label className="block text-sm text-brutal-secondary mb-1">Changelog URL</label>
                       <div className="flex gap-2">
                         <input
                           type="url"
@@ -357,12 +357,12 @@ export function SourcesPanel() {
                             setTestResult(null);
                           }}
                           placeholder="https://raw.githubusercontent.com/..."
-                          className="flex-1 bg-white dark:bg-charcoal-700 border border-cream-300 dark:border-charcoal-500 rounded-xl px-3 py-2 text-charcoal-700 dark:text-cream-200 font-mono text-sm"
+                          className="input-brutal flex-1 font-mono text-sm"
                         />
                         <button
                           onClick={() => testUrl(newUrl)}
                           disabled={!newUrl || testingUrl !== null}
-                          className="px-3 py-2 bg-cream-200 dark:bg-charcoal-600 text-charcoal-700 dark:text-cream-200 rounded-xl hover:bg-cream-300 dark:hover:bg-charcoal-500 disabled:opacity-50 flex items-center gap-1"
+                          className="px-3 py-2 bg-brutal-secondary/10 text-brutal-primary border-brutal-thin hover:bg-brutal-secondary/20 disabled:opacity-50 flex items-center gap-1 font-brutal uppercase text-sm"
                         >
                           {testingUrl === newUrl ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -377,34 +377,34 @@ export function SourcesPanel() {
                     {/* Test result */}
                     {testResult && (
                       <div
-                        className={`p-3 rounded-xl text-sm ${
+                        className={`p-3 border-brutal text-sm ${
                           testResult.valid
-                            ? 'bg-teal-500/10 dark:bg-teal-600/10 border border-teal-400/30 dark:border-teal-600/30'
-                            : 'bg-coral-400/10 dark:bg-coral-600/10 border border-coral-400/30 dark:border-coral-600/30'
+                            ? 'bg-accent-green/10 border-l-4 border-l-accent-green'
+                            : 'bg-accent-red/10 border-l-4 border-l-accent-red'
                         }`}
                       >
                         {testResult.valid ? (
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400">
+                            <div className="flex items-center gap-2 text-accent-green">
                               <CheckCircle className="w-4 h-4" />
-                              <span>Valid changelog detected!</span>
+                              <span className="font-brutal">Valid changelog detected!</span>
                             </div>
-                            <p className="text-charcoal-600 dark:text-charcoal-400">
+                            <p className="text-brutal-secondary">
                               Latest version: <span className="font-mono font-medium">{testResult.latestVersion}</span>
                             </p>
                             {testResult.preview && (
                               <details className="text-xs">
-                                <summary className="cursor-pointer text-charcoal-500 hover:text-charcoal-700 dark:hover:text-cream-200">
+                                <summary className="cursor-pointer text-brutal-secondary hover:text-brutal-primary">
                                   Preview content
                                 </summary>
-                                <pre className="mt-2 p-2 bg-cream-100 dark:bg-charcoal-800 rounded-lg overflow-auto max-h-32 font-mono">
+                                <pre className="mt-2 p-2 bg-brutal-secondary/10 border-brutal-thin overflow-auto max-h-32 font-mono">
                                   {testResult.preview}
                                 </pre>
                               </details>
                             )}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-coral-700 dark:text-coral-400">
+                          <div className="flex items-center gap-2 text-accent-red">
                             <AlertCircle className="w-4 h-4" />
                             <span>{testResult.message}</span>
                           </div>
@@ -416,7 +416,7 @@ export function SourcesPanel() {
                       <button
                         onClick={handleAddSource}
                         disabled={isAdding || !newName || !newUrl}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-xl hover:bg-coral-600 disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-accent-coral text-white border-brutal shadow-brutal-sm hover:shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-100 disabled:opacity-50 font-brutal uppercase"
                       >
                         {isAdding ? (
                           <>
@@ -438,7 +438,7 @@ export function SourcesPanel() {
                           setAddError(null);
                           setTestResult(null);
                         }}
-                        className="px-4 py-2 bg-cream-200 dark:bg-charcoal-600 text-charcoal-700 dark:text-cream-200 rounded-xl hover:bg-cream-300 dark:hover:bg-charcoal-500"
+                        className="px-4 py-2 bg-brutal-secondary/10 text-brutal-primary border-brutal-thin hover:bg-brutal-secondary/20 transition-colors font-brutal uppercase"
                       >
                         Cancel
                       </button>
@@ -447,7 +447,7 @@ export function SourcesPanel() {
                 ) : (
                   <button
                     onClick={() => setShowAddForm(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-cream-400 dark:border-charcoal-500 rounded-xl text-charcoal-600 dark:text-charcoal-400 hover:border-coral-400 hover:text-coral-600 dark:hover:text-coral-400 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-brutal-secondary/50 text-brutal-secondary hover:border-accent-coral hover:text-accent-coral transition-colors font-brutal uppercase"
                   >
                     <Plus className="w-5 h-5" />
                     Add Changelog Source
@@ -455,8 +455,8 @@ export function SourcesPanel() {
                 )}
 
                 {/* Info */}
-                <div className="p-4 bg-teal-500/10 dark:bg-teal-600/10 rounded-xl border border-teal-400/30 dark:border-teal-600/30">
-                  <p className="text-xs text-teal-700 dark:text-teal-400">
+                <div className="p-4 bg-brutal-secondary/10 border-brutal border-l-4 border-l-accent-coral">
+                  <p className="text-xs text-brutal-secondary">
                     Add multiple changelog sources to monitor. Each source should be a raw markdown file URL
                     (e.g., from GitHub raw content). Active sources will be checked for new versions based on
                     your notification settings.

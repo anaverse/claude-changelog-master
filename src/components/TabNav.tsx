@@ -6,15 +6,15 @@ interface TabNavProps {
 
 export function TabNav({ activeTab, onTabChange, isAnalyzing }: TabNavProps) {
   return (
-    <nav className="border-b border-cream-300 dark:border-charcoal-500 bg-white dark:bg-charcoal-800 transition-colors duration-500">
+    <nav className="border-b-brutal bg-brutal-elevated">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="flex gap-1">
+        <div className="flex gap-0">
           <button
             onClick={() => onTabChange('changelog')}
-            className={`px-5 py-3.5 text-sm font-medium border-b-2 transition-all duration-300 ${
+            className={`tab-brutal ${
               activeTab === 'changelog'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
-                : 'border-transparent text-charcoal-500 dark:text-charcoal-400 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-charcoal-700'
+                ? 'tab-brutal-active !bg-accent-coral text-white !border-b-accent-coral'
+                : ''
             }`}
             aria-selected={activeTab === 'changelog'}
             role="tab"
@@ -23,17 +23,17 @@ export function TabNav({ activeTab, onTabChange, isAnalyzing }: TabNavProps) {
           </button>
           <button
             onClick={() => onTabChange('matters')}
-            className={`px-5 py-3.5 text-sm font-medium border-b-2 transition-all duration-300 flex items-center gap-2 ${
+            className={`tab-brutal flex items-center gap-2 ${
               activeTab === 'matters'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
-                : 'border-transparent text-charcoal-500 dark:text-charcoal-400 hover:text-charcoal-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-charcoal-700'
+                ? 'tab-brutal-active !bg-accent-coral text-white !border-b-accent-coral'
+                : ''
             }`}
             aria-selected={activeTab === 'matters'}
             role="tab"
           >
             What Matters
             {isAnalyzing && (
-              <span className="w-2 h-2 bg-coral-500 rounded-full animate-pulse" />
+              <span className="w-3 h-3 bg-accent-red border-2 border-black animate-pulse" />
             )}
           </button>
         </div>

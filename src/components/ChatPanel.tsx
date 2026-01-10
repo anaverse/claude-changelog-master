@@ -263,14 +263,14 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
   return (
     <>
       <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-5xl h-[85vh] bg-white dark:bg-charcoal-800 rounded-xl shadow-2xl z-50 flex overflow-hidden transition-colors duration-500">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-5xl h-[85vh] bg-brutal-elevated border-brutal shadow-brutal z-50 flex overflow-hidden">
         {/* Conversation History Sidebar */}
         {showHistory && (
-          <div className="w-64 border-r border-cream-300 dark:border-charcoal-500 flex flex-col bg-cream-100 dark:bg-charcoal-900">
-            <div className="p-4 border-b border-cream-300 dark:border-charcoal-500">
+          <div className="w-64 border-r-brutal flex flex-col bg-brutal">
+            <div className="p-4 border-b-brutal">
               <button
                 onClick={createNewConversation}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-coral-500 hover:bg-coral-600 text-white rounded-xl transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent-coral text-white border-brutal shadow-brutal-sm transition-all duration-100 hover:shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] font-brutal uppercase tracking-wide text-sm"
               >
                 <Plus className="w-4 h-4" />
                 New Chat
@@ -278,22 +278,22 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
             </div>
             <div className="flex-1 overflow-y-auto p-2">
               {conversations.length === 0 ? (
-                <p className="text-sm text-charcoal-500 dark:text-charcoal-400 text-center py-4">No conversations yet</p>
+                <p className="text-sm text-brutal-secondary text-center py-4 font-brutal">No conversations yet</p>
               ) : (
                 conversations.map((conv) => (
                   <div
                     key={conv.id}
-                    className={`group flex items-center gap-2 px-3 py-2 rounded-xl mb-1 cursor-pointer transition-colors ${
+                    className={`group flex items-center gap-2 px-3 py-2 mb-1 cursor-pointer transition-colors border-2 ${
                       currentConversationId === conv.id
-                        ? 'bg-coral-400/20 dark:bg-coral-600/20'
-                        : 'hover:bg-cream-200 dark:hover:bg-charcoal-700'
+                        ? 'border-accent-coral bg-accent-coral/10'
+                        : 'border-transparent hover:bg-brutal-secondary/10'
                     }`}
                     onClick={() => loadConversation(conv.id)}
                   >
-                    <MessageSquare className="w-4 h-4 text-charcoal-500 dark:text-charcoal-400 flex-shrink-0" />
+                    <MessageSquare className="w-4 h-4 text-brutal-secondary flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-charcoal-900 dark:text-cream-50 truncate">{conv.title}</p>
-                      <p className="text-xs text-charcoal-500 dark:text-charcoal-400">
+                      <p className="text-sm text-brutal-primary truncate">{conv.title}</p>
+                      <p className="text-xs text-brutal-secondary">
                         {conv.message_count} messages
                       </p>
                     </div>
@@ -302,9 +302,9 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
                         e.stopPropagation();
                         deleteConversation(conv.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-coral-400/20 dark:hover:bg-coral-600/20 rounded transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent-coral/20 transition-all"
                     >
-                      <Trash2 className="w-3 h-3 text-coral-600" />
+                      <Trash2 className="w-3 h-3 text-accent-coral" />
                     </button>
                   </div>
                 ))
@@ -314,22 +314,22 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
         )}
 
         {/* Version Selector Sidebar */}
-        <div className="w-56 border-r border-cream-300 dark:border-charcoal-500 flex flex-col">
-          <div className="p-3 border-b border-cream-300 dark:border-charcoal-500">
-            <h3 className="font-semibold text-charcoal-900 dark:text-cream-50 text-sm mb-1">Select Releases</h3>
-            <p className="text-xs text-charcoal-500 dark:text-charcoal-400 mb-2">
+        <div className="w-56 border-r-brutal flex flex-col">
+          <div className="p-3 border-b-brutal">
+            <h3 className="font-brutal uppercase tracking-wide text-brutal-primary text-sm mb-1">Select Releases</h3>
+            <p className="text-xs text-brutal-secondary mb-2">
               Tag versions as context
             </p>
             <div className="flex gap-1">
               <button
                 onClick={selectAll}
-                className="flex-1 text-xs px-2 py-1 bg-coral-400/20 dark:bg-coral-600/20 text-coral-700 dark:text-coral-400 rounded-lg hover:bg-coral-400/30 dark:hover:bg-coral-600/30 transition-colors"
+                className="flex-1 text-xs px-2 py-1 bg-accent-coral/20 text-accent-coral border-brutal-thin hover:bg-accent-coral/30 transition-colors font-brutal uppercase"
               >
                 All
               </button>
               <button
                 onClick={clearSelection}
-                className="flex-1 text-xs px-2 py-1 bg-cream-200 dark:bg-charcoal-700 text-charcoal-700 dark:text-cream-200 rounded-lg hover:bg-cream-300 dark:hover:bg-charcoal-600 transition-colors"
+                className="flex-1 text-xs px-2 py-1 bg-brutal-secondary/10 text-brutal-secondary border-brutal-thin hover:bg-brutal-secondary/20 transition-colors font-brutal uppercase"
               >
                 Clear
               </button>
@@ -340,17 +340,17 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
               <button
                 key={v.version}
                 onClick={() => toggleVersion(v.version)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg mb-0.5 transition-colors text-left ${
+                className={`w-full flex items-center gap-2 px-2 py-1.5 mb-0.5 transition-colors text-left border-2 ${
                   selectedVersions.has(v.version)
-                    ? 'bg-coral-400/20 dark:bg-coral-600/20 text-coral-700 dark:text-coral-400'
-                    : 'hover:bg-cream-200 dark:hover:bg-charcoal-700 text-charcoal-700 dark:text-cream-200'
+                    ? 'bg-accent-coral/20 text-accent-coral border-accent-coral'
+                    : 'hover:bg-brutal-secondary/10 text-brutal-secondary border-transparent'
                 }`}
               >
                 <div
-                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${
+                  className={`w-3.5 h-3.5 border-2 flex items-center justify-center flex-shrink-0 ${
                     selectedVersions.has(v.version)
-                      ? 'bg-coral-500 border-coral-500'
-                      : 'border-cream-400 dark:border-charcoal-500'
+                      ? 'bg-accent-coral border-black'
+                      : 'border-brutal-secondary'
                   }`}
                 >
                   {selectedVersions.has(v.version) && <Check className="w-2.5 h-2.5 text-white" />}
@@ -359,8 +359,8 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
               </button>
             ))}
           </div>
-          <div className="p-2 border-t border-cream-300 dark:border-charcoal-500 bg-cream-100 dark:bg-charcoal-700/50">
-            <div className="text-xs text-charcoal-500 dark:text-charcoal-400">
+          <div className="p-2 border-t-brutal bg-brutal-secondary/10">
+            <div className="text-xs text-brutal-secondary font-brutal">
               {selectedVersions.size} selected
             </div>
           </div>
@@ -369,33 +369,33 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
         {/* Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-cream-300 dark:border-charcoal-500">
+          <div className="flex items-center justify-between p-3 border-b-brutal">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className={`p-2 rounded-xl transition-colors ${
-                  showHistory ? 'bg-coral-400/20 dark:bg-coral-600/20 text-coral-600' : 'hover:bg-cream-200 dark:hover:bg-charcoal-700 text-charcoal-500'
+                className={`p-2 transition-colors border-2 ${
+                  showHistory ? 'bg-accent-coral/20 border-accent-coral text-accent-coral' : 'hover:bg-brutal-secondary/10 border-transparent text-brutal-secondary'
                 }`}
                 title="Chat history"
               >
                 <History className="w-5 h-5" />
               </button>
-              <Sparkles className="w-5 h-5 text-coral-500" />
-              <h2 className="text-lg font-semibold text-charcoal-900 dark:text-cream-50">
+              <Sparkles className="w-5 h-5 text-accent-coral" />
+              <h2 className="heading-brutal heading-brutal-sm">
                 Changelog Assistant
               </h2>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={createNewConversation}
-                className="p-2 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors text-charcoal-500"
+                className="p-2 hover:bg-brutal-secondary/10 transition-colors text-brutal-secondary"
                 title="New chat"
               >
                 <Plus className="w-5 h-5" />
               </button>
               <button
                 onClick={onClose}
-                className="p-2 text-charcoal-500 hover:bg-cream-200 dark:hover:bg-charcoal-700 rounded-xl transition-colors"
+                className="p-2 text-brutal-secondary hover:bg-brutal-secondary/10 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -405,9 +405,9 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-charcoal-500 dark:text-charcoal-400">
+              <div className="h-full flex flex-col items-center justify-center text-brutal-secondary">
                 <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
-                <p className="text-center mb-2">Ask questions about Claude Code changelogs</p>
+                <p className="text-center mb-2 font-brutal">Ask questions about Claude Code changelogs</p>
                 <p className="text-sm text-center opacity-75 mb-6">
                   Select versions on the left to include them as context
                 </p>
@@ -420,7 +420,7 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
                     <button
                       key={suggestion}
                       onClick={() => setInput(suggestion)}
-                      className="text-left text-sm px-4 py-2 bg-cream-200 dark:bg-charcoal-700 rounded-xl hover:bg-cream-300 dark:hover:bg-charcoal-600 transition-colors"
+                      className="text-left text-sm px-4 py-2 bg-brutal-secondary/10 border-brutal-thin hover:bg-brutal-secondary/20 transition-colors"
                     >
                       {suggestion}
                     </button>
@@ -434,24 +434,24 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                    className={`max-w-[80%] px-4 py-2 border-brutal ${
                       message.role === 'user'
-                        ? 'bg-coral-500 text-white'
-                        : 'bg-cream-200 dark:bg-charcoal-700 text-charcoal-900 dark:text-cream-50'
+                        ? 'bg-accent-coral text-white shadow-brutal-sm'
+                        : 'bg-brutal-secondary/10 text-brutal-primary'
                     }`}
                   >
                     {message.role === 'user' ? (
                       <p className="whitespace-pre-wrap">{message.content}</p>
                     ) : (
-                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-headings:my-2 prose-strong:text-coral-600 dark:prose-strong:text-coral-400">
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-headings:my-2 prose-strong:text-accent-coral">
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                       </div>
                     )}
                     <p
                       className={`text-xs mt-1 ${
                         message.role === 'user'
-                          ? 'text-coral-200'
-                          : 'text-charcoal-500 dark:text-charcoal-400'
+                          ? 'text-white/70'
+                          : 'text-brutal-secondary'
                       }`}
                     >
                       {new Date(message.created_at).toLocaleTimeString()}
@@ -462,8 +462,8 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
             )}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-cream-200 dark:bg-charcoal-700 rounded-2xl px-4 py-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-coral-500" />
+                <div className="bg-brutal-secondary/10 border-brutal px-4 py-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-accent-coral" />
                 </div>
               </div>
             )}
@@ -471,9 +471,9 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t border-cream-300 dark:border-charcoal-500">
+          <div className="p-4 border-t-brutal">
             {selectedVersions.size === 0 && (
-              <div className="mb-2 text-xs text-coral-600 dark:text-coral-400 flex items-center gap-1">
+              <div className="mb-2 text-xs text-accent-coral flex items-center gap-1 font-brutal">
                 <Sparkles className="w-3 h-3" />
                 Tip: Select versions to give the assistant more context
               </div>
@@ -486,12 +486,12 @@ export function ChatPanel({ versions, isOpen, onClose }: ChatPanelProps) {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about the changelog..."
                 rows={1}
-                className="flex-1 resize-none bg-cream-100 dark:bg-charcoal-700 border-0 rounded-xl px-4 py-3 text-charcoal-900 dark:text-cream-50 placeholder-charcoal-500 focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors"
+                className="input-brutal flex-1 resize-none px-4 py-3"
               />
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
-                className="px-4 py-2 bg-coral-500 text-white rounded-xl hover:bg-coral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-accent-coral text-white border-brutal shadow-brutal-sm transition-all duration-100 hover:shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-brutal-sm disabled:hover:translate-x-0 disabled:hover:translate-y-0"
               >
                 <Send className="w-5 h-5" />
               </button>

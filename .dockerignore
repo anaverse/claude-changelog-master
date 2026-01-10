@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output (will be rebuilt in container)
+dist/
+
+# Git
+.git/
+.gitignore
+
+# Environment files (passed via docker-compose)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Database (will be mounted as volume)
+data/
+
+# Development files
+*.md
+!README.md
+LICENSE

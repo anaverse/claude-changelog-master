@@ -6,8 +6,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cron, { ScheduledTask } from 'node-cron';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// In dev (ESM via tsx): use import.meta.url
+// In prod (CJS via esbuild): __dirPath is injected via banner
+declare const __dirPath: string | undefined;
+const resolvedDirPath = typeof __dirPath !== 'undefined'
+  ? __dirPath
+  : path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,8 +22,14 @@ const GEMINI_API_KEY = process.env.VITE_GEMINI_API_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL;
 
+// Twilio configuration
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+const NOTIFY_PHONE = process.env.NOTIFY_PHONE;
+
 // Initialize SQLite database
-const dbPath = path.join(__dirname, '..', 'data', 'audio.db');
+const dbPath = path.join(resolvedDirPath, '..', 'data', 'audio.db');
 const db = new Database(dbPath);
 
 // Create tables
@@ -101,6 +111,12 @@ if (sourceCount === 0) {
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(resolvedDirPath, '..', 'dist');
+  app.use(express.static(distPath));
+}
 
 // ============ Changelog Monitoring ============
 
@@ -251,32 +267,63 @@ ${changelogText}`;
 }
 
 async function generateTTSAudio(text: string, voice: string = 'Charon'): Promise<Buffer | null> {
-  if (!GEMINI_API_KEY) return null;
+  console.log('[TTS] generateTTSAudio called with voice:', voice);
+  console.log('[TTS] Text length:', text.length);
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `Read this changelog summary:\n\n${text}` }] }],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
-        },
-      }),
+  if (!GEMINI_API_KEY) {
+    console.log('[TTS] No GEMINI_API_KEY');
+    return null;
+  }
+
+  // Truncate text to ~500 chars to keep audio under 1MB for email attachment
+  // 24kHz 16-bit mono WAV = ~48KB/sec, so ~20sec = ~1MB, which is ~50 words or ~350 chars
+  // Being conservative with 500 chars to account for speech pacing
+  const MAX_TTS_TEXT = 500;
+  let ttsText = text;
+  if (text.length > MAX_TTS_TEXT) {
+    ttsText = text.slice(0, MAX_TTS_TEXT) + '... Check the full changelog for more details.';
+    console.log('[TTS] Text truncated from', text.length, 'to', ttsText.length, 'chars');
+  }
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `Read this changelog summary:\n\n${ttsText}` }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[TTS] API error:', response.status, errorText);
+      return null;
     }
-  );
 
-  if (!response.ok) return null;
+    const data = await response.json();
+    const base64Audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!base64Audio) {
+      console.error('[TTS] No audio data in response');
+      console.error('[TTS] Response structure:', JSON.stringify(data, null, 2).slice(0, 500));
+      return null;
+    }
 
-  const data = await response.json();
-  const base64Audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!base64Audio) return null;
-
-  // Convert PCM to WAV
-  const pcmBuffer = Buffer.from(base64Audio, 'base64');
-  return pcmToWav(pcmBuffer);
+    console.log('[TTS] Got audio data, converting PCM to WAV...');
+    const pcmBuffer = Buffer.from(base64Audio, 'base64');
+    const wavBuffer = pcmToWav(pcmBuffer);
+    console.log('[TTS] WAV buffer size:', wavBuffer.length);
+    return wavBuffer;
+  } catch (error) {
+    console.error('[TTS] Exception:', error);
+    return null;
+  }
 }
 
 function pcmToWav(pcmData: Buffer): Buffer {
@@ -309,11 +356,59 @@ function pcmToWav(pcmData: Buffer): Buffer {
   return buffer;
 }
 
+async function sendSmsNotification(data: ChangelogEmailRequest): Promise<boolean> {
+  console.log('[SMS] sendSmsNotification called');
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER || !NOTIFY_PHONE) {
+    console.log('[SMS] Missing Twilio credentials');
+    return false;
+  }
+
+  const message = `${data.version} released`;
+  console.log('[SMS] Sending message:', message);
+
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+  const authHeader = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+
+  const formData = new URLSearchParams();
+  formData.append('To', NOTIFY_PHONE);
+  formData.append('From', TWILIO_PHONE_NUMBER);
+  formData.append('Body', message);
+
+  try {
+    const response = await fetch(twilioUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${authHeader}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('[Twilio] Failed to send SMS:', error);
+      return false;
+    }
+
+    console.log('[Twilio] SMS sent successfully');
+    return true;
+  } catch (error) {
+    console.error('[Twilio] Error sending SMS:', error);
+    return false;
+  }
+}
+
 async function sendEmailWithAttachment(
   data: ChangelogEmailRequest,
   audioBuffer: Buffer | null
 ): Promise<boolean> {
-  if (!RESEND_API_KEY || !NOTIFY_EMAIL) return false;
+  console.log('[Email] sendEmailWithAttachment called');
+  console.log('[Email] Audio buffer:', audioBuffer ? `${audioBuffer.length} bytes (${(audioBuffer.length / 1024).toFixed(1)} KB)` : 'NULL');
+
+  if (!RESEND_API_KEY || !NOTIFY_EMAIL) {
+    console.log('[Email] Missing RESEND_API_KEY or NOTIFY_EMAIL');
+    return false;
+  }
 
   const html = generateEmailHtml(data);
 
@@ -324,25 +419,89 @@ async function sendEmailWithAttachment(
     html,
   };
 
-  if (audioBuffer) {
+  // Resend has a 40MB limit, but large attachments can cause socket timeouts
+  // Allow up to 3MB for audio attachments
+  const MAX_ATTACHMENT_SIZE = 3 * 1024 * 1024; // 3MB
+
+  if (audioBuffer && audioBuffer.length <= MAX_ATTACHMENT_SIZE) {
+    console.log('[Email] Adding audio attachment...');
+    const base64Content = audioBuffer.toString('base64');
+    console.log('[Email] Base64 content length:', base64Content.length, 'chars');
     emailPayload.attachments = [
       {
-        filename: `claude-code-${data.version}-summary.wav`,
-        content: audioBuffer.toString('base64'),
+        filename: `claude-code-${data.version.replace(/\s+/g, '-')}-summary.wav`,
+        content: base64Content,
+        type: 'audio/wav',
       },
     ];
+    console.log('[Email] Attachment added with filename:', `claude-code-${data.version.replace(/\s+/g, '-')}-summary.wav`);
+  } else if (audioBuffer) {
+    console.log(`[Email] Audio too large (${(audioBuffer.length / 1024).toFixed(1)} KB > ${MAX_ATTACHMENT_SIZE / 1024} KB), skipping attachment`);
+  } else {
+    console.log('[Email] No audio buffer, sending without attachment');
   }
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(emailPayload),
-  });
+  try {
+    console.log('[Email] Sending to Resend API...');
+    const payloadSize = JSON.stringify(emailPayload).length;
+    console.log('[Email] Payload size:', (payloadSize / 1024).toFixed(1), 'KB');
 
-  return response.ok;
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Email] Resend API error:', response.status, errorText);
+      return false;
+    }
+
+    const result = await response.json();
+    const hasAttachment = !!emailPayload.attachments;
+    console.log(`[Email] Email sent successfully ${hasAttachment ? 'with' : 'without'} attachment, id:`, result.id);
+    return true;
+  } catch (error) {
+    console.error('[Email] Network error:', error);
+    return false;
+  }
+}
+
+async function sendNotifications(
+  data: ChangelogEmailRequest,
+  audioBuffer: Buffer | null,
+  options?: { forceSms?: boolean }
+): Promise<{ email: boolean; sms: boolean }> {
+  console.log('[Notifications] sendNotifications called');
+  console.log('[Notifications] Audio buffer present:', audioBuffer !== null);
+  console.log('[Notifications] Audio buffer size:', audioBuffer?.length ?? 0);
+  console.log('[Notifications] Options:', options);
+
+  const settingsStmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+  const smsEnabled = settingsStmt.get('smsNotificationsEnabled') as { value: string } | undefined;
+  console.log('[Notifications] SMS enabled setting:', smsEnabled?.value);
+
+  const results = { email: false, sms: false };
+
+  console.log('[Notifications] Sending email...');
+  results.email = await sendEmailWithAttachment(data, audioBuffer);
+  console.log('[Notifications] Email result:', results.email);
+
+  // Send SMS if setting is enabled OR if forceSms option is passed (for demo)
+  const shouldSendSms = smsEnabled?.value === 'true' || options?.forceSms === true;
+  if (shouldSendSms) {
+    console.log('[Notifications] SMS is enabled or forced, sending SMS...');
+    results.sms = await sendSmsNotification(data);
+    console.log('[Notifications] SMS result:', results.sms);
+  } else {
+    console.log('[Notifications] SMS is NOT enabled, skipping');
+  }
+
+  return results;
 }
 
 async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void> {
@@ -405,15 +564,21 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
     const voice = voiceSetting?.value || 'Charon';
     const audioBuffer = await generateTTSAudio(analysis.tldr, voice);
 
-    // Send email
-    console.log(`[Monitor] Sending notification email for ${source.name}...`);
-    const sent = await sendEmailWithAttachment(analysis, audioBuffer);
+    // Small delay to ensure audio buffer is fully ready
+    if (audioBuffer) {
+      console.log(`[Monitor] Waiting 1 second for audio to settle...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
-    if (sent) {
+    // Send notifications (email + SMS)
+    console.log(`[Monitor] Sending notifications for ${source.name}...`);
+    const results = await sendNotifications(analysis, audioBuffer);
+
+    if (results.email || results.sms) {
       markVersionNotified(latest.version, source.id);
-      console.log(`[Monitor] Notification sent for ${source.name} ${latest.version}`);
+      console.log(`[Monitor] Notifications sent for ${source.name} ${latest.version} (email: ${results.email}, sms: ${results.sms})`);
     } else {
-      console.log(`[Monitor] Failed to send notification for ${source.name}`);
+      console.log(`[Monitor] Failed to send notifications for ${source.name}`);
     }
   } catch (error) {
     console.error(`[Monitor] Error checking ${source.name}:`, error);
@@ -421,7 +586,7 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
 }
 
 async function checkForNewChangelog(): Promise<void> {
-  console.log('[Monitor] Starting changelog check for all active sources...');
+  console.log(`[Monitor] ${new Date().toISOString()} Starting changelog check for all active sources...`);
 
   const sources = getActiveSources();
 
@@ -450,19 +615,17 @@ function startMonitoring(intervalMs: number): void {
     return;
   }
 
-  console.log(`[Monitor] Starting cron job: "${cronExpression}" (every ${intervalMs / 60000} minutes)`);
+  const now = new Date().toISOString();
+  console.log(`[Monitor] ${now} Starting cron job: "${cronExpression}" (every ${intervalMs / 60000} minutes)`);
   currentCronExpression = cronExpression;
 
-  // Check immediately on start
-  checkForNewChangelog();
-
-  // Schedule cron job
+  // Schedule cron job - no immediate execution
   cronJob = cron.schedule(cronExpression, () => {
-    console.log(`[Cron] Running scheduled check at ${new Date().toISOString()}`);
+    console.log(`[Cron] ${new Date().toISOString()} Running scheduled check`);
     checkForNewChangelog();
   });
 
-  console.log('[Monitor] Cron job started successfully');
+  console.log(`[Monitor] ${new Date().toISOString()} Cron job registered successfully (will run at next scheduled time)`);
 }
 
 function stopMonitoring(): void {
@@ -584,13 +747,17 @@ app.post('/api/monitor/check', async (_req, res) => {
 
 // Send demo email with audio attachment on demand
 app.post('/api/send-demo-email', async (req, res) => {
+  console.log('[Demo] === Starting demo email request ===');
+
   if (!RESEND_API_KEY || !NOTIFY_EMAIL) {
+    console.log('[Demo] Missing email config');
     res.status(500).json({ success: false, error: 'Email configuration missing' });
     return;
   }
 
   try {
-    const { voice = 'Charon', sourceId } = req.body;
+    const { voice = 'Charon', sourceId, includeSms } = req.body;
+    console.log('[Demo] Voice:', voice, 'SourceId:', sourceId, 'includeSms:', includeSms);
 
     // Get source URL
     let sourceUrl = DEFAULT_CHANGELOG_URL;
@@ -612,39 +779,55 @@ app.post('/api/send-demo-email', async (req, res) => {
       }
     }
 
-    console.log(`[Demo] Fetching changelog from ${sourceName}...`);
+    console.log('[Demo] Source:', sourceName, 'URL:', sourceUrl);
+
+    console.log('[Demo] Fetching changelog...');
     const markdown = await fetchChangelog(sourceUrl);
     const latest = parseLatestVersion(markdown);
 
     if (!latest) {
+      console.log('[Demo] Could not parse changelog');
       res.status(500).json({ success: false, error: 'Could not parse changelog' });
       return;
     }
 
-    console.log(`[Demo] Analyzing ${sourceName} version ${latest.version}...`);
+    console.log('[Demo] Latest version:', latest.version);
+
+    console.log('[Demo] Analyzing changelog...');
     const analysis = await analyzeChangelog(latest.content);
 
     if (!analysis) {
+      console.log('[Demo] Analysis failed');
       res.status(500).json({ success: false, error: 'Failed to analyze changelog' });
       return;
     }
 
     analysis.version = `${sourceName} ${latest.version}`;
+    console.log('[Demo] Analysis complete. TL;DR length:', analysis.tldr?.length ?? 0);
 
-    console.log('[Demo] Generating audio...');
+    console.log('[Demo] Generating TTS audio...');
     const audioBuffer = await generateTTSAudio(analysis.tldr, voice);
+    console.log('[Demo] Audio buffer result:', audioBuffer ? `${audioBuffer.length} bytes` : 'NULL');
 
-    console.log('[Demo] Sending email with attachment...');
-    const sent = await sendEmailWithAttachment(analysis, audioBuffer);
+    // Small delay to ensure audio buffer is fully ready
+    if (audioBuffer) {
+      console.log('[Demo] Waiting 1 second for audio to settle...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
-    if (sent) {
-      console.log('[Demo] Demo email sent successfully!');
-      res.json({ success: true, version: latest.version });
+    console.log('[Demo] Sending notifications...');
+    const results = await sendNotifications(analysis, audioBuffer, { forceSms: includeSms === true });
+    console.log('[Demo] Results:', results);
+
+    if (results.email || results.sms) {
+      console.log('[Demo] === Success ===');
+      res.json({ success: true, version: latest.version, email: results.email, sms: results.sms });
     } else {
-      res.status(500).json({ success: false, error: 'Failed to send email' });
+      console.log('[Demo] === Failed to send ===');
+      res.status(500).json({ success: false, error: 'Failed to send notifications' });
     }
   } catch (error) {
-    console.error('[Demo] Error:', error);
+    console.error('[Demo] Exception:', error);
     res.status(500).json({ success: false, error: 'Failed to send demo email' });
   }
 });
@@ -1180,50 +1363,20 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
   return html;
 }
 
-app.post('/api/send-changelog', async (req, res) => {
-  if (!RESEND_API_KEY || !NOTIFY_EMAIL) {
-    console.error('Missing RESEND_API_KEY or NOTIFY_EMAIL environment variables');
-    res.status(500).json({ success: false, error: 'Email configuration missing' });
-    return;
-  }
-
-  try {
-    const data = req.body as ChangelogEmailRequest;
-    const html = generateEmailHtml(data);
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Changelog Tracker <onboarding@resend.dev>',
-        to: [NOTIFY_EMAIL],
-        subject: `Claude Code ${data.version} Released`,
-        html,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Resend API error:', error);
-      res.status(500).json({ success: false, error: 'Failed to send email' });
-      return;
-    }
-
-    const result = await response.json();
-    console.log('Email sent successfully:', result);
-    res.json({ success: true, id: result.id });
-  } catch (error) {
-    console.error('Email send error:', error);
-    res.status(500).json({ success: false, error: 'Failed to send email' });
-  }
-});
+// Old /api/send-changelog endpoint removed - use /api/send-demo-email instead
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Serve SPA for all non-API routes in production
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(resolvedDirPath, '..', 'dist');
+  // Express 5 requires named parameter for catch-all routes
+  app.get('/{*splat}', (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 // Start server
 app.listen(PORT, () => {

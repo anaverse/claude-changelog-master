@@ -1,25 +1,17 @@
-import type { GeminiAnalysis } from '../types';
-
-interface SendEmailParams {
-  version: string;
-  tldr: string;
-  analysis: GeminiAnalysis;
-}
-
-export async function sendChangelogEmail({ version, tldr, analysis }: SendEmailParams): Promise<boolean> {
+// Email service now uses the demo email endpoint with audio attachment
+export async function sendChangelogEmail(): Promise<boolean> {
   try {
-    const response = await fetch('/api/send-changelog', {
+    // Get voice preference from localStorage or use default
+    const voice = localStorage.getItem('notificationVoice') || 'Charon';
+    // Check if SMS notifications are enabled (stored by SettingsPanel)
+    const smsEnabled = localStorage.getItem('smsNotificationsEnabled') === 'true';
+
+    const response = await fetch('/api/send-demo-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        version,
-        tldr,
-        categories: analysis.categories,
-        action_items: analysis.action_items,
-        sentiment: analysis.sentiment,
-      }),
+      body: JSON.stringify({ voice, includeSms: smsEnabled }),
     });
 
     if (!response.ok) {

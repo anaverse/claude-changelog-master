@@ -79,11 +79,11 @@ export function MattersView({
     return (
       <div className="max-w-4xl mx-auto p-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-24 bg-cream-200 dark:bg-charcoal-700 rounded-xl" />
-          <div className="h-40 bg-cream-200 dark:bg-charcoal-700 rounded-xl" />
-          <div className="h-32 bg-cream-200 dark:bg-charcoal-700 rounded-xl" />
+          <div className="h-24 bg-brutal-secondary/20 border-brutal" />
+          <div className="h-40 bg-brutal-secondary/20 border-brutal" />
+          <div className="h-32 bg-brutal-secondary/20 border-brutal" />
         </div>
-        <p className="text-center text-charcoal-500 dark:text-charcoal-400 mt-6">
+        <p className="text-center text-brutal-secondary mt-6 font-brutal uppercase tracking-wide">
           Analyzing changelog with AI...
         </p>
       </div>
@@ -93,7 +93,7 @@ export function MattersView({
   if (!displayAnalysis) {
     return (
       <div className="max-w-4xl mx-auto p-8 text-center">
-        <p className="text-charcoal-500 dark:text-charcoal-400">
+        <p className="text-brutal-secondary font-brutal uppercase tracking-wide">
           Analysis not available. Please check your Gemini API key configuration.
         </p>
       </div>
@@ -138,10 +138,10 @@ export function MattersView({
       <button
         onClick={() => handleAudioClick(text, label)}
         disabled={isGenerating}
-        className={`p-2 rounded-xl transition-colors ${
+        className={`p-2 transition-colors ${
           isPlaying
-            ? 'bg-coral-400/20 dark:bg-coral-600/20 text-coral-600 dark:text-coral-400'
-            : 'text-charcoal-500 hover:bg-cream-200 dark:hover:bg-charcoal-600 hover:text-coral-600'
+            ? 'bg-accent-coral text-white'
+            : 'text-brutal-secondary hover:bg-brutal-secondary/20 hover:text-accent-coral'
         } disabled:opacity-50`}
         title={isPlaying ? 'Stop' : 'Listen'}
       >
@@ -175,10 +175,10 @@ export function MattersView({
           <div className="relative">
             <button
               onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
-              className="flex items-center gap-2 px-4 py-2 bg-cream-100 dark:bg-charcoal-700 rounded-xl border border-cream-300 dark:border-charcoal-500 text-charcoal-700 dark:text-cream-200 hover:bg-cream-200 dark:hover:bg-charcoal-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brutal-elevated border-brutal-thin text-brutal-primary hover:bg-brutal-secondary/10 transition-colors font-brutal uppercase tracking-wide text-sm"
             >
               <History className="w-4 h-4" />
-              <span className="text-sm font-medium">
+              <span className="font-bold">
                 {isViewingHistory ? selectedVersion : 'Current Analysis'}
               </span>
               <ChevronDown className={`w-4 h-4 transition-transform ${showHistoryDropdown ? 'rotate-180' : ''}`} />
@@ -190,32 +190,31 @@ export function MattersView({
                   className="fixed inset-0 z-40"
                   onClick={() => setShowHistoryDropdown(false)}
                 />
-                <div className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-charcoal-700 rounded-xl shadow-xl border border-cream-300 dark:border-charcoal-500 z-50 overflow-hidden max-h-64 overflow-y-auto">
+                <div className="absolute left-0 top-full mt-2 w-80 bg-brutal-elevated border-brutal shadow-brutal z-50 overflow-hidden max-h-64 overflow-y-auto">
                   <button
                     onClick={showCurrentAnalysis}
-                    className={`w-full px-4 py-3 text-left text-sm flex items-center justify-between transition-colors ${
+                    className={`w-full px-4 py-3 text-left text-sm flex items-center justify-between transition-colors font-brutal uppercase tracking-wide border-b-brutal-thin ${
                       !isViewingHistory
-                        ? 'bg-coral-400/20 dark:bg-coral-600/20 text-coral-700 dark:text-coral-400'
-                        : 'hover:bg-cream-100 dark:hover:bg-charcoal-600 text-charcoal-700 dark:text-cream-200'
+                        ? 'bg-accent-coral text-white'
+                        : 'hover:bg-brutal-secondary/10 text-brutal-primary'
                     }`}
                   >
-                    <span className="font-medium">Current Analysis</span>
-                    <span className="text-xs text-charcoal-500 dark:text-charcoal-400">Latest</span>
+                    <span className="font-bold">Current Analysis</span>
+                    <span className="tag-brutal text-xs">Latest</span>
                   </button>
-                  <div className="border-t border-cream-200 dark:border-charcoal-500" />
                   {historyItems.map((item) => (
                     <button
                       key={item.version}
                       onClick={() => loadHistoricalAnalysis(item.version)}
                       disabled={isLoadingHistory}
-                      className={`w-full px-4 py-3 text-left text-sm flex items-center justify-between transition-colors ${
+                      className={`w-full px-4 py-3 text-left text-sm flex items-center justify-between transition-colors border-b-brutal-thin last:border-b-0 font-brutal ${
                         selectedVersion === item.version
-                          ? 'bg-coral-400/20 dark:bg-coral-600/20 text-coral-700 dark:text-coral-400'
-                          : 'hover:bg-cream-100 dark:hover:bg-charcoal-600 text-charcoal-700 dark:text-cream-200'
+                          ? 'bg-accent-coral text-white'
+                          : 'hover:bg-brutal-secondary/10 text-brutal-primary'
                       } disabled:opacity-50`}
                     >
-                      <span className="font-medium truncate">{item.version}</span>
-                      <span className="text-xs text-charcoal-500 dark:text-charcoal-400 ml-2 flex-shrink-0">
+                      <span className="font-bold truncate">{item.version}</span>
+                      <span className="text-xs text-brutal-secondary ml-2 flex-shrink-0">
                         {formatDate(item.created_at)}
                       </span>
                     </button>
@@ -228,7 +227,7 @@ export function MattersView({
           {isViewingHistory && (
             <button
               onClick={showCurrentAnalysis}
-              className="text-sm text-coral-600 dark:text-coral-400 hover:underline"
+              className="text-sm text-accent-coral hover:underline font-brutal uppercase tracking-wide"
             >
               Back to current
             </button>
@@ -238,7 +237,7 @@ export function MattersView({
 
       {isLoadingHistory && (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-coral-500" />
+          <Loader2 className="w-6 h-6 animate-spin text-accent-coral" />
         </div>
       )}
 
@@ -246,21 +245,21 @@ export function MattersView({
         <>
           {/* Viewing History Banner */}
           {isViewingHistory && (
-            <div className="p-3 bg-teal-500/10 dark:bg-teal-600/10 rounded-xl border border-teal-400/30 dark:border-teal-600/30 flex items-center gap-2">
-              <History className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-              <span className="text-sm text-teal-700 dark:text-teal-400">
+            <div className="p-3 bg-accent-coral/20 border-brutal flex items-center gap-2">
+              <History className="w-4 h-4 text-accent-coral" />
+              <span className="text-sm font-brutal uppercase tracking-wide text-brutal-primary">
                 Viewing archived analysis: <strong>{selectedVersion}</strong>
               </span>
             </div>
           )}
 
           {/* TLDR Section */}
-          <div className="p-6 bg-gradient-to-r from-coral-400/10 to-coral-500/10 dark:from-coral-600/10 dark:to-coral-700/10 rounded-xl border border-coral-400/30 dark:border-coral-600/30">
+          <div className="p-6 bg-accent-coral/10 border-brutal border-l-4 border-l-accent-coral">
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-lg font-semibold text-coral-700 dark:text-coral-400">TL;DR</h2>
+              <h2 className="heading-brutal heading-brutal-md text-accent-coral">TL;DR</h2>
               <AudioButton text={displayAnalysis.tldr} label="tldr" />
             </div>
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:text-charcoal-700 dark:prose-p:text-cream-200 prose-p:leading-relaxed prose-strong:text-coral-600 dark:prose-strong:text-coral-400 prose-ul:my-2 prose-li:my-0.5">
+            <div className="prose prose-sm dark:prose-invert max-w-none text-brutal-primary prose-strong:text-accent-coral prose-ul:my-2 prose-li:my-0.5">
               <ReactMarkdown>{displayAnalysis.tldr}</ReactMarkdown>
             </div>
           </div>
@@ -270,10 +269,10 @@ export function MattersView({
             <button
               onClick={() => handleAudioClick(getFullAnalysisText(), 'full-analysis')}
               disabled={generatingAudioFor === 'full-analysis'}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
+              className={`flex items-center gap-2 px-6 py-3 border-brutal shadow-brutal transition-all duration-100 hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-0 active:translate-y-0 active:shadow-brutal-sm font-brutal uppercase tracking-wide ${
                 playingAudioFor === 'full-analysis'
-                  ? 'bg-coral-500 text-white'
-                  : 'bg-coral-400/20 dark:bg-coral-600/20 text-coral-700 dark:text-coral-400 hover:bg-coral-400/30 dark:hover:bg-coral-600/30'
+                  ? 'bg-accent-coral text-white'
+                  : 'bg-brutal-elevated text-brutal-primary hover:bg-accent-coral/10'
               } disabled:opacity-50`}
             >
               {generatingAudioFor === 'full-analysis' ? (
@@ -302,28 +301,28 @@ export function MattersView({
 
           {/* Removals */}
           {displayAnalysis.categories.removals.length > 0 && (
-            <div className="p-4 border-l-4 border-coral-500 bg-coral-400/10 dark:bg-coral-600/10 rounded-r-xl">
+            <div className="p-4 border-brutal border-l-4 border-l-accent-red bg-accent-red/10">
               <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-5 h-5 text-coral-600 dark:text-coral-400" />
-                <h3 className="font-semibold text-coral-700 dark:text-coral-400">Removals</h3>
+                <AlertCircle className="w-5 h-5 text-accent-red" />
+                <h3 className="heading-brutal heading-brutal-sm text-accent-red">Removals</h3>
               </div>
               <ul className="space-y-2">
                 {displayAnalysis.categories.removals.map((removal, idx) => (
                   <li key={idx} className="flex items-start gap-2">
                     <span
-                      className={`px-2 py-0.5 text-xs rounded-lg ${
+                      className={`tag-brutal text-xs uppercase ${
                         removal.severity === 'critical'
-                          ? 'bg-coral-600/20 text-coral-700 dark:text-coral-400'
+                          ? 'bg-accent-red text-white'
                           : removal.severity === 'high'
-                          ? 'bg-coral-500/20 text-coral-600 dark:text-coral-400'
-                          : 'bg-coral-400/20 text-coral-500 dark:text-coral-400'
+                          ? 'bg-accent-coral text-white'
+                          : 'bg-brutal-secondary/20 text-brutal-primary'
                       }`}
                     >
                       {removal.severity}
                     </span>
                     <div>
-                      <span className="font-medium text-charcoal-900 dark:text-cream-50">{removal.feature}</span>
-                      <span className="text-charcoal-600 dark:text-cream-300"> — {removal.why}</span>
+                      <span className="font-bold text-brutal-primary">{removal.feature}</span>
+                      <span className="text-brutal-secondary"> — {removal.why}</span>
                     </div>
                   </li>
                 ))}
@@ -398,12 +397,12 @@ export function MattersView({
 
           {/* Action Items */}
           {displayAnalysis.action_items.length > 0 && (
-            <div className="p-4 bg-cream-100 dark:bg-charcoal-700 rounded-xl border border-cream-300 dark:border-charcoal-500">
-              <h3 className="font-semibold text-charcoal-900 dark:text-cream-50 mb-3">Action Items</h3>
+            <div className="p-4 bg-accent-yellow/20 border-brutal border-l-4 border-l-accent-yellow">
+              <h3 className="heading-brutal heading-brutal-sm mb-3">Action Items</h3>
               <ul className="space-y-2">
                 {displayAnalysis.action_items.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-charcoal-700 dark:text-cream-200">
-                    <span className="text-coral-500 mt-0.5">—</span>
+                  <li key={idx} className="flex items-start gap-2 text-brutal-primary">
+                    <span className="text-accent-coral font-bold mt-0.5">—</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -428,35 +427,34 @@ interface SectionProps {
 
 function Section({ title, icon, items, color, onAudio, isGenerating, isPlaying }: SectionProps) {
   const colorClasses = {
-    red: 'border-coral-600 bg-coral-500/10 dark:bg-coral-600/10 text-coral-600 dark:text-coral-400',
-    orange: 'border-coral-500 bg-coral-400/10 dark:bg-coral-500/10 text-coral-500 dark:text-coral-400',
-    teal: 'border-teal-500 bg-teal-500/10 dark:bg-teal-600/10 text-teal-600 dark:text-teal-400',
-    gray: 'border-charcoal-400 bg-cream-100 dark:bg-charcoal-700 text-charcoal-500 dark:text-cream-300',
-    purple: 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-    blue: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
-    indigo: 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400',
+    red: 'border-l-accent-red bg-accent-red/10 text-accent-red',
+    orange: 'border-l-accent-coral bg-accent-coral/10 text-accent-coral',
+    teal: 'border-l-accent-green bg-accent-green/10 text-accent-green',
+    gray: 'border-l-brutal-secondary bg-brutal-secondary/10 text-brutal-secondary',
+    purple: 'border-l-accent-purple bg-accent-purple/10 text-accent-purple',
+    blue: 'border-l-accent-coral bg-accent-coral/10 text-accent-coral',
+    indigo: 'border-l-accent-purple bg-accent-purple/10 text-accent-purple',
   };
 
   const classes = colorClasses[color];
-  const [borderColor, bgColor, textColor] = classes.split(' ');
 
   const sectionText = `${title}: ${items.join('. ')}`;
 
   return (
-    <div className={`p-4 border-l-4 ${borderColor} ${bgColor} rounded-r-xl`}>
+    <div className={`p-4 border-brutal border-l-4 ${classes}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className={textColor}>{icon}</span>
-          <h3 className="font-semibold text-charcoal-900 dark:text-cream-50">{title}</h3>
+          <span>{icon}</span>
+          <h3 className="heading-brutal heading-brutal-sm text-brutal-primary">{title}</h3>
         </div>
         {onAudio && (
           <button
             onClick={() => onAudio(sectionText)}
             disabled={isGenerating}
-            className={`p-1.5 rounded-xl transition-colors ${
+            className={`p-1.5 transition-colors ${
               isPlaying
-                ? 'bg-coral-400/20 dark:bg-coral-600/20 text-coral-600'
-                : 'text-charcoal-400 hover:bg-white/50 dark:hover:bg-charcoal-600 hover:text-coral-600'
+                ? 'bg-accent-coral text-white'
+                : 'text-brutal-secondary hover:bg-brutal-secondary/20 hover:text-accent-coral'
             } disabled:opacity-50`}
             title={isPlaying ? 'Stop' : 'Listen'}
           >
@@ -472,8 +470,8 @@ function Section({ title, icon, items, color, onAudio, isGenerating, isPlaying }
       </div>
       <ul className="space-y-1">
         {items.map((item, idx) => (
-          <li key={idx} className="text-charcoal-700 dark:text-cream-200 flex items-start gap-2">
-            <span className="text-charcoal-400 dark:text-cream-400">•</span>
+          <li key={idx} className="text-brutal-primary flex items-start gap-2">
+            <span className="text-brutal-secondary">•</span>
             <span>{item}</span>
           </li>
         ))}
