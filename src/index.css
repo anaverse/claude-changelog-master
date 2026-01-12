@@ -620,6 +620,15 @@ h1, h2, h3, h4, h5, h6 {
 /* Font family */
 .font-brutal { font-family: 'Space Mono', monospace; }
 
+/* Matters View - Force dark text on bullet items */
+.matters-list-item {
+  color: #1a1a1a !important;
+}
+
+.dark .matters-list-item {
+  color: #ffffff !important;
+}
+
 /* No rounded corners - brutal override */
 .no-round { border-radius: 0 !important; }
 

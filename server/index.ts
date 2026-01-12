@@ -213,6 +213,53 @@ function parseLatestVersion(markdown: string): { version: string; content: strin
   return version ? { version, content: content.join('\n') } : null;
 }
 
+// Parse ALL versions from changelog, returns array in order (newest first)
+function parseAllVersions(markdown: string): { version: string; content: string }[] {
+  const lines = markdown.split('\n');
+  const versions: { version: string; content: string }[] = [];
+  let currentVersion = '';
+  let currentContent: string[] = [];
+
+  for (const line of lines) {
+    const versionMatch = line.match(/^##\s+\[?(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)\]?/);
+    if (versionMatch) {
+      // Save previous version if exists
+      if (currentVersion) {
+        versions.push({ version: currentVersion, content: currentContent.join('\n') });
+      }
+      currentVersion = versionMatch[1];
+      currentContent = [line];
+    } else if (currentVersion) {
+      currentContent.push(line);
+    }
+  }
+
+  // Don't forget the last version
+  if (currentVersion) {
+    versions.push({ version: currentVersion, content: currentContent.join('\n') });
+  }
+
+  return versions;
+}
+
+// Get all versions that haven't been notified yet (between lastKnown and latest)
+function getNewVersionsSinceLastKnown(allVersions: { version: string; content: string }[], lastKnown: string | null): { version: string; content: string }[] {
+  if (!lastKnown) {
+    // No history - just return the latest version
+    return allVersions.length > 0 ? [allVersions[0]] : [];
+  }
+
+  const newVersions: { version: string; content: string }[] = [];
+  for (const v of allVersions) {
+    if (v.version === lastKnown) {
+      break; // Stop when we reach the last known version
+    }
+    newVersions.push(v);
+  }
+
+  return newVersions;
+}
+
 async function analyzeChangelog(changelogText: string): Promise<ChangelogEmailRequest | null> {
   if (!GEMINI_API_KEY) return null;
 
@@ -509,15 +556,17 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
     console.log(`[Monitor] Checking source: ${source.name} (${source.url})`);
 
     const markdown = await fetchChangelog(source.url);
-    const latest = parseLatestVersion(markdown);
+    const allVersions = parseAllVersions(markdown);
 
-    if (!latest) {
-      console.log(`[Monitor] Could not parse changelog for ${source.name}`);
+    if (allVersions.length === 0) {
+      console.log(`[Monitor] Could not parse any versions for ${source.name}`);
       return;
     }
 
     const lastKnown = getLastKnownVersion(source.id);
-    console.log(`[Monitor] ${source.name}: Latest: ${latest.version}, Last known: ${lastKnown}`);
+    const newVersions = getNewVersionsSinceLastKnown(allVersions, lastKnown);
+
+    console.log(`[Monitor] ${source.name}: Latest: ${allVersions[0].version}, Last known: ${lastKnown}, New versions found: ${newVersions.length}`);
 
     // Check settings
     const settingsStmt = db.prepare('SELECT value FROM settings WHERE key = ?');
@@ -526,59 +575,78 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
 
     if (notifyEnabled?.value !== 'true') {
       console.log(`[Monitor] Email notifications disabled for ${source.name}, skipping`);
-      if (lastKnown !== latest.version) {
-        saveVersion(latest.version, source.id);
+      // Still save all new versions even if notifications are disabled
+      for (const v of newVersions) {
+        saveVersion(v.version, source.id);
       }
       return;
     }
 
-    const isNewVersion = lastKnown !== latest.version;
-    const shouldSendEmail = isNewVersion || alwaysSendEmail?.value === 'true';
+    const hasNewVersions = newVersions.length > 0;
+    const shouldSendEmail = hasNewVersions || alwaysSendEmail?.value === 'true';
 
     if (!shouldSendEmail) {
       console.log(`[Monitor] ${source.name}: No new version and always-send disabled`);
       return;
     }
 
-    if (isNewVersion) {
-      console.log(`[Monitor] ${source.name}: New version detected: ${latest.version}`);
-      saveVersion(latest.version, source.id);
-    } else {
+    // Process versions from oldest to newest so emails arrive in chronological order
+    const versionsToProcess = hasNewVersions ? [...newVersions].reverse() : [allVersions[0]];
+
+    if (!hasNewVersions) {
       console.log(`[Monitor] ${source.name}: Sending scheduled email for current version`);
+    } else {
+      console.log(`[Monitor] ${source.name}: Processing ${versionsToProcess.length} new version(s): ${versionsToProcess.map(v => v.version).join(', ')}`);
     }
 
-    // Analyze the changelog
-    console.log(`[Monitor] Analyzing changelog for ${source.name}...`);
-    const analysis = await analyzeChangelog(latest.content);
-
-    if (!analysis) {
-      console.log(`[Monitor] Failed to analyze changelog for ${source.name}`);
-      return;
-    }
-
-    analysis.version = `${source.name} ${latest.version}`;
-
-    // Generate audio
-    console.log(`[Monitor] Generating audio for ${source.name}...`);
     const voiceSetting = settingsStmt.get('notificationVoice') as { value: string } | undefined;
     const voice = voiceSetting?.value || 'Charon';
-    const audioBuffer = await generateTTSAudio(analysis.tldr, voice);
 
-    // Small delay to ensure audio buffer is fully ready
-    if (audioBuffer) {
-      console.log(`[Monitor] Waiting 1 second for audio to settle...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+    // Process each new version
+    for (const versionInfo of versionsToProcess) {
+      console.log(`[Monitor] Processing version ${versionInfo.version} for ${source.name}...`);
 
-    // Send notifications (email + SMS)
-    console.log(`[Monitor] Sending notifications for ${source.name}...`);
-    const results = await sendNotifications(analysis, audioBuffer);
+      // Save version first
+      if (hasNewVersions) {
+        saveVersion(versionInfo.version, source.id);
+      }
 
-    if (results.email || results.sms) {
-      markVersionNotified(latest.version, source.id);
-      console.log(`[Monitor] Notifications sent for ${source.name} ${latest.version} (email: ${results.email}, sms: ${results.sms})`);
-    } else {
-      console.log(`[Monitor] Failed to send notifications for ${source.name}`);
+      // Analyze the changelog
+      console.log(`[Monitor] Analyzing changelog for ${source.name} ${versionInfo.version}...`);
+      const analysis = await analyzeChangelog(versionInfo.content);
+
+      if (!analysis) {
+        console.log(`[Monitor] Failed to analyze changelog for ${source.name} ${versionInfo.version}`);
+        continue;
+      }
+
+      analysis.version = `${source.name} ${versionInfo.version}`;
+
+      // Generate audio
+      console.log(`[Monitor] Generating audio for ${source.name} ${versionInfo.version}...`);
+      const audioBuffer = await generateTTSAudio(analysis.tldr, voice);
+
+      // Small delay to ensure audio buffer is fully ready
+      if (audioBuffer) {
+        console.log(`[Monitor] Waiting 1 second for audio to settle...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Send notifications (email + SMS)
+      console.log(`[Monitor] Sending notifications for ${source.name} ${versionInfo.version}...`);
+      const results = await sendNotifications(analysis, audioBuffer);
+
+      if (results.email || results.sms) {
+        markVersionNotified(versionInfo.version, source.id);
+        console.log(`[Monitor] Notifications sent for ${source.name} ${versionInfo.version} (email: ${results.email}, sms: ${results.sms})`);
+      } else {
+        console.log(`[Monitor] Failed to send notifications for ${source.name} ${versionInfo.version}`);
+      }
+
+      // Small delay between notifications to avoid rate limiting
+      if (versionsToProcess.length > 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
   } catch (error) {
     console.error(`[Monitor] Error checking ${source.name}:`, error);

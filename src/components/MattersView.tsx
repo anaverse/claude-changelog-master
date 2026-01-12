@@ -175,7 +175,7 @@ export function MattersView({
           <div className="relative">
             <button
               onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
-              className="flex items-center gap-2 px-4 py-2 bg-brutal-elevated border-brutal-thin text-brutal-primary hover:bg-brutal-secondary/10 transition-colors font-brutal uppercase tracking-wide text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-brutal-elevated border-brutal-thin text-brutal hover:bg-brutal-secondary/10 transition-colors font-brutal uppercase tracking-wide text-sm"
             >
               <History className="w-4 h-4" />
               <span className="font-bold">
@@ -196,7 +196,7 @@ export function MattersView({
                     className={`w-full px-4 py-3 text-left text-sm flex items-center justify-between transition-colors font-brutal uppercase tracking-wide border-b-brutal-thin ${
                       !isViewingHistory
                         ? 'bg-accent-coral text-white'
-                        : 'hover:bg-brutal-secondary/10 text-brutal-primary'
+                        : 'hover:bg-brutal-secondary/10 text-brutal'
                     }`}
                   >
                     <span className="font-bold">Current Analysis</span>
@@ -210,7 +210,7 @@ export function MattersView({
                       className={`w-full px-4 py-3 text-left text-sm flex items-center justify-between transition-colors border-b-brutal-thin last:border-b-0 font-brutal ${
                         selectedVersion === item.version
                           ? 'bg-accent-coral text-white'
-                          : 'hover:bg-brutal-secondary/10 text-brutal-primary'
+                          : 'hover:bg-brutal-secondary/10 text-brutal'
                       } disabled:opacity-50`}
                     >
                       <span className="font-bold truncate">{item.version}</span>
@@ -247,7 +247,7 @@ export function MattersView({
           {isViewingHistory && (
             <div className="p-3 bg-accent-coral/20 border-brutal flex items-center gap-2">
               <History className="w-4 h-4 text-accent-coral" />
-              <span className="text-sm font-brutal uppercase tracking-wide text-brutal-primary">
+              <span className="text-sm font-brutal uppercase tracking-wide text-brutal">
                 Viewing archived analysis: <strong>{selectedVersion}</strong>
               </span>
             </div>
@@ -259,7 +259,7 @@ export function MattersView({
               <h2 className="heading-brutal heading-brutal-md text-accent-coral">TL;DR</h2>
               <AudioButton text={displayAnalysis.tldr} label="tldr" />
             </div>
-            <div className="prose prose-sm dark:prose-invert max-w-none text-brutal-primary prose-strong:text-accent-coral prose-ul:my-2 prose-li:my-0.5">
+            <div className="prose prose-sm dark:prose-invert max-w-none text-brutal prose-strong:text-accent-coral prose-ul:my-2 prose-li:my-0.5">
               <ReactMarkdown>{displayAnalysis.tldr}</ReactMarkdown>
             </div>
           </div>
@@ -272,7 +272,7 @@ export function MattersView({
               className={`flex items-center gap-2 px-6 py-3 border-brutal shadow-brutal transition-all duration-100 hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-0 active:translate-y-0 active:shadow-brutal-sm font-brutal uppercase tracking-wide ${
                 playingAudioFor === 'full-analysis'
                   ? 'bg-accent-coral text-white'
-                  : 'bg-brutal-elevated text-brutal-primary hover:bg-accent-coral/10'
+                  : 'bg-brutal-elevated text-brutal hover:bg-accent-coral/10'
               } disabled:opacity-50`}
             >
               {generatingAudioFor === 'full-analysis' ? (
@@ -315,13 +315,13 @@ export function MattersView({
                           ? 'bg-accent-red text-white'
                           : removal.severity === 'high'
                           ? 'bg-accent-coral text-white'
-                          : 'bg-brutal-secondary/20 text-brutal-primary'
+                          : 'bg-brutal-secondary/20 text-brutal'
                       }`}
                     >
                       {removal.severity}
                     </span>
                     <div>
-                      <span className="font-bold text-brutal-primary">{removal.feature}</span>
+                      <span className="font-bold text-brutal">{removal.feature}</span>
                       <span className="text-brutal-secondary"> — {removal.why}</span>
                     </div>
                   </li>
@@ -401,7 +401,7 @@ export function MattersView({
               <h3 className="heading-brutal heading-brutal-sm mb-3">Action Items</h3>
               <ul className="space-y-2">
                 {displayAnalysis.action_items.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-brutal-primary">
+                  <li key={idx} className="flex items-start gap-2 text-brutal">
                     <span className="text-accent-coral font-bold mt-0.5">—</span>
                     <span>{item}</span>
                   </li>
@@ -427,16 +427,27 @@ interface SectionProps {
 
 function Section({ title, icon, items, color, onAudio, isGenerating, isPlaying }: SectionProps) {
   const colorClasses = {
-    red: 'border-l-accent-red bg-accent-red/10 text-accent-red',
-    orange: 'border-l-accent-coral bg-accent-coral/10 text-accent-coral',
-    teal: 'border-l-accent-green bg-accent-green/10 text-accent-green',
-    gray: 'border-l-brutal-secondary bg-brutal-secondary/10 text-brutal-secondary',
-    purple: 'border-l-accent-purple bg-accent-purple/10 text-accent-purple',
-    blue: 'border-l-accent-coral bg-accent-coral/10 text-accent-coral',
-    indigo: 'border-l-accent-purple bg-accent-purple/10 text-accent-purple',
+    red: 'border-l-accent-red bg-accent-red/10',
+    orange: 'border-l-accent-coral bg-accent-coral/10',
+    teal: 'border-l-accent-green bg-accent-green/10',
+    gray: 'border-l-brutal-secondary bg-brutal-secondary/10',
+    purple: 'border-l-accent-purple bg-accent-purple/10',
+    blue: 'border-l-accent-coral bg-accent-coral/10',
+    indigo: 'border-l-accent-purple bg-accent-purple/10',
+  };
+
+  const iconColorClasses = {
+    red: 'text-accent-red',
+    orange: 'text-accent-coral',
+    teal: 'text-accent-green',
+    gray: 'text-brutal-secondary',
+    purple: 'text-accent-purple',
+    blue: 'text-accent-coral',
+    indigo: 'text-accent-purple',
   };
 
   const classes = colorClasses[color];
+  const iconColor = iconColorClasses[color];
 
   const sectionText = `${title}: ${items.join('. ')}`;
 
@@ -444,8 +455,8 @@ function Section({ title, icon, items, color, onAudio, isGenerating, isPlaying }
     <div className={`p-4 border-brutal border-l-4 ${classes}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span>{icon}</span>
-          <h3 className="heading-brutal heading-brutal-sm text-brutal-primary">{title}</h3>
+          <span className={iconColor}>{icon}</span>
+          <h3 className="heading-brutal heading-brutal-sm text-brutal">{title}</h3>
         </div>
         {onAudio && (
           <button
@@ -470,9 +481,9 @@ function Section({ title, icon, items, color, onAudio, isGenerating, isPlaying }
       </div>
       <ul className="space-y-1">
         {items.map((item, idx) => (
-          <li key={idx} className="text-brutal-primary flex items-start gap-2">
+          <li key={idx} className="matters-list-item flex items-start gap-2">
             <span className="text-brutal-secondary">•</span>
-            <span>{item}</span>
+            <span className="matters-list-item">{item}</span>
           </li>
         ))}
       </ul>
