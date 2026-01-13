@@ -583,9 +583,8 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
     }
 
     const hasNewVersions = newVersions.length > 0;
-    const shouldSendEmail = hasNewVersions || alwaysSendEmail?.value === 'true';
 
-    if (!shouldSendEmail) {
+    if (!hasNewVersions && alwaysSendEmail?.value !== 'true') {
       console.log(`[Monitor] ${source.name}: No new version and always-send disabled`);
       return;
     }
@@ -594,6 +593,15 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
     const versionsToProcess = hasNewVersions ? [...newVersions].reverse() : [allVersions[0]];
 
     if (!hasNewVersions) {
+      // Check if the current version was already notified - skip if so
+      const checkStmt = db.prepare('SELECT notified FROM changelog_history WHERE version = ? AND source_id = ?');
+      const existingEntry = checkStmt.get(allVersions[0].version, source.id) as { notified: number } | undefined;
+
+      if (existingEntry?.notified === 1) {
+        console.log(`[Monitor] ${source.name}: Current version ${allVersions[0].version} already notified, skipping`);
+        return;
+      }
+
       console.log(`[Monitor] ${source.name}: Sending scheduled email for current version`);
     } else {
       console.log(`[Monitor] ${source.name}: Processing ${versionsToProcess.length} new version(s): ${versionsToProcess.map(v => v.version).join(', ')}`);
