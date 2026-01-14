@@ -602,6 +602,11 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
         return;
       }
 
+      // Save the version if it doesn't exist yet (so markVersionNotified will work)
+      if (!existingEntry) {
+        saveVersion(allVersions[0].version, source.id);
+      }
+
       console.log(`[Monitor] ${source.name}: Sending scheduled email for current version`);
     } else {
       console.log(`[Monitor] ${source.name}: Processing ${versionsToProcess.length} new version(s): ${versionsToProcess.map(v => v.version).join(', ')}`);
