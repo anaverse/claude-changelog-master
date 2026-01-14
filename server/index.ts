@@ -263,9 +263,10 @@ function getNewVersionsSinceLastKnown(allVersions: { version: string; content: s
 async function analyzeChangelog(changelogText: string): Promise<ChangelogEmailRequest | null> {
   if (!GEMINI_API_KEY) return null;
 
-  const prompt = `Analyze this changelog and return JSON:
+  const prompt = `Analyze this changelog and return JSON with educational explanations that help developers understand and learn from the changes:
+
 {
-  "tldr": "150-200 word summary",
+  "tldr": "150-200 word summary of what changed",
   "categories": {
     "critical_breaking_changes": [],
     "removals": [{"feature": "", "severity": "", "why": ""}],
@@ -276,8 +277,36 @@ async function analyzeChangelog(changelogText: string): Promise<ChangelogEmailRe
     "api_changes": []
   },
   "action_items": [],
-  "sentiment": "positive|neutral|critical"
+  "sentiment": "positive|neutral|critical",
+  "educational": {
+    "why_it_matters": "2-3 sentences explaining the practical impact of these changes on daily developer workflow. What problems do they solve? How will this make development easier or better?",
+    "key_concepts": [
+      {
+        "term": "technical term or feature name",
+        "explanation": "Clear, beginner-friendly explanation of what this concept means and why it exists",
+        "analogy": "Optional real-world analogy to help understand the concept"
+      }
+    ],
+    "tutorials": [
+      {
+        "title": "Short tutorial title (e.g., 'How to use the new X feature')",
+        "difficulty": "beginner|intermediate|advanced",
+        "steps": ["Step 1: Do this...", "Step 2: Then do this..."],
+        "code_example": "Optional code snippet showing usage",
+        "tips": ["Pro tip or gotcha to be aware of"]
+      }
+    ],
+    "learn_more": ["Suggested topics to explore to deepen understanding"]
+  }
 }
+
+Guidelines for educational content:
+- Write for developers who may not know these concepts
+- Use clear, jargon-free language where possible
+- For key_concepts, pick 2-4 most important/confusing terms
+- For tutorials, create 1-2 mini-tutorials for the most significant features
+- Make tutorials actionable - something they can try immediately
+- Keep code examples short and focused (under 10 lines)
 
 Changelog:
 ${changelogText}`;
@@ -1338,10 +1367,26 @@ interface ChangelogEmailRequest {
   };
   action_items: string[];
   sentiment: string;
+  educational?: {
+    why_it_matters: string;
+    key_concepts: {
+      term: string;
+      explanation: string;
+      analogy?: string;
+    }[];
+    tutorials: {
+      title: string;
+      difficulty: 'beginner' | 'intermediate' | 'advanced';
+      steps: string[];
+      code_example?: string;
+      tips: string[];
+    }[];
+    learn_more: string[];
+  };
 }
 
 function generateEmailHtml(data: ChangelogEmailRequest): string {
-  const { version, tldr, categories, action_items, sentiment } = data;
+  const { version, tldr, categories, action_items, sentiment, educational } = data;
 
   const sentimentEmoji = sentiment === 'positive' ? '🎉' : sentiment === 'critical' ? '⚠️' : '📋';
 
@@ -1355,6 +1400,7 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
     h1 { color: #d97706; }
     h2 { color: #374151; margin-top: 24px; }
+    h3 { color: #4b5563; margin-top: 16px; margin-bottom: 8px; }
     .tldr { background: #fef3c7; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
     .section { margin-bottom: 20px; }
     .breaking { border-left: 4px solid #ef4444; padding-left: 12px; background: #fef2f2; padding: 12px; border-radius: 0 8px 8px 0; }
@@ -1364,10 +1410,31 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
     li { margin-bottom: 8px; }
     .audio-note { background: #e0f2fe; padding: 12px; border-radius: 8px; margin-top: 16px; }
     .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280; }
+    .why-matters { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+    .why-matters strong { color: #fef3c7; }
+    .concept-card { background: #f0fdf4; border: 1px solid #86efac; padding: 14px; border-radius: 8px; margin-bottom: 12px; }
+    .concept-term { font-weight: bold; color: #166534; font-size: 16px; }
+    .concept-explanation { margin-top: 6px; }
+    .concept-analogy { margin-top: 8px; font-style: italic; color: #166534; background: #dcfce7; padding: 8px; border-radius: 4px; }
+    .tutorial-card { background: #fefce8; border: 1px solid #fde047; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+    .tutorial-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .tutorial-title { font-weight: bold; color: #854d0e; font-size: 16px; }
+    .difficulty-badge { font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
+    .difficulty-beginner { background: #dcfce7; color: #166534; }
+    .difficulty-intermediate { background: #fef3c7; color: #92400e; }
+    .difficulty-advanced { background: #fee2e2; color: #991b1b; }
+    .tutorial-steps { margin: 12px 0; }
+    .tutorial-steps li { margin-bottom: 6px; }
+    .code-block { background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 6px; font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; margin: 12px 0; }
+    .tips-box { background: #eff6ff; border-left: 3px solid #3b82f6; padding: 10px 12px; margin-top: 12px; }
+    .tips-box strong { color: #1d4ed8; }
+    .learn-more { background: #f5f3ff; padding: 14px; border-radius: 8px; margin-top: 20px; }
+    .learn-more-title { color: #6d28d9; font-weight: bold; margin-bottom: 8px; }
+    .learn-more ul { margin: 0; }
   </style>
 </head>
 <body>
-  <h1>${sentimentEmoji} Claude Code ${version} Released</h1>
+  <h1>${sentimentEmoji} ${version} Released</h1>
 
   <div class="tldr">
     <strong>TL;DR:</strong> ${tldr}
@@ -1429,13 +1496,89 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
 `;
   }
 
+  // Educational content sections
+  if (educational) {
+    // Why It Matters
+    if (educational.why_it_matters) {
+      html += `
+  <div class="why-matters">
+    <strong>💡 Why This Matters</strong>
+    <p style="margin: 8px 0 0 0;">${educational.why_it_matters}</p>
+  </div>
+`;
+    }
+
+    // Key Concepts
+    if (educational.key_concepts && educational.key_concepts.length > 0) {
+      html += `
+  <div class="section">
+    <h2>📚 Key Concepts Explained</h2>
+`;
+      for (const concept of educational.key_concepts) {
+        html += `
+    <div class="concept-card">
+      <div class="concept-term">${concept.term}</div>
+      <div class="concept-explanation">${concept.explanation}</div>
+      ${concept.analogy ? `<div class="concept-analogy">💭 Think of it like: ${concept.analogy}</div>` : ''}
+    </div>
+`;
+      }
+      html += `  </div>
+`;
+    }
+
+    // Tutorials
+    if (educational.tutorials && educational.tutorials.length > 0) {
+      html += `
+  <div class="section">
+    <h2>🎓 Mini-Tutorials</h2>
+`;
+      for (const tutorial of educational.tutorials) {
+        const difficultyClass = `difficulty-${tutorial.difficulty}`;
+        html += `
+    <div class="tutorial-card">
+      <div class="tutorial-header">
+        <span class="tutorial-title">${tutorial.title}</span>
+        <span class="difficulty-badge ${difficultyClass}">${tutorial.difficulty}</span>
+      </div>
+      <ol class="tutorial-steps">
+        ${tutorial.steps.map((step) => `<li>${step}</li>`).join('')}
+      </ol>
+      ${tutorial.code_example ? `<div class="code-block">${tutorial.code_example.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : ''}
+      ${tutorial.tips && tutorial.tips.length > 0 ? `
+      <div class="tips-box">
+        <strong>💡 Tips:</strong>
+        <ul style="margin: 4px 0 0 0; padding-left: 16px;">
+          ${tutorial.tips.map((tip) => `<li>${tip}</li>`).join('')}
+        </ul>
+      </div>` : ''}
+    </div>
+`;
+      }
+      html += `  </div>
+`;
+    }
+
+    // Learn More
+    if (educational.learn_more && educational.learn_more.length > 0) {
+      html += `
+  <div class="learn-more">
+    <div class="learn-more-title">🔍 Want to Learn More?</div>
+    <ul>
+      ${educational.learn_more.map((topic) => `<li>${topic}</li>`).join('')}
+    </ul>
+  </div>
+`;
+    }
+  }
+
   html += `
   <div class="audio-note">
     🎧 <strong>Audio summary attached!</strong> Listen to the changelog summary on the go.
   </div>
 
   <div class="footer">
-    <p>This email was automatically sent by Claude Code Changelog Tracker</p>
+    <p>This email was automatically sent by Changelog Master</p>
   </div>
 </body>
 </html>
