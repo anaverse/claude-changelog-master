@@ -163,14 +163,22 @@ function getAllSources(): ChangelogSource[] {
 }
 
 function getLastKnownVersion(sourceId?: string): string | null {
+  // Return the last NOTIFIED version, not just the last detected version
+  // This ensures we don't skip versions that were detected but never notified
   if (sourceId) {
-    const stmt = db.prepare('SELECT version FROM changelog_history WHERE source_id = ? ORDER BY detected_at DESC LIMIT 1');
+    const stmt = db.prepare('SELECT version FROM changelog_history WHERE source_id = ? AND notified = 1 ORDER BY detected_at DESC LIMIT 1');
     const row = stmt.get(sourceId) as { version: string } | undefined;
     return row?.version ?? null;
   }
-  const stmt = db.prepare('SELECT version FROM changelog_history ORDER BY detected_at DESC LIMIT 1');
+  const stmt = db.prepare('SELECT version FROM changelog_history WHERE notified = 1 ORDER BY detected_at DESC LIMIT 1');
   const row = stmt.get() as { version: string } | undefined;
   return row?.version ?? null;
+}
+
+function isVersionNotified(version: string, sourceId: string): boolean {
+  const stmt = db.prepare('SELECT notified FROM changelog_history WHERE version = ? AND source_id = ?');
+  const row = stmt.get(version, sourceId) as { notified: number } | undefined;
+  return row?.notified === 1;
 }
 
 function saveVersion(version: string, sourceId: string): void {
@@ -263,10 +271,12 @@ function getNewVersionsSinceLastKnown(allVersions: { version: string; content: s
 async function analyzeChangelog(changelogText: string): Promise<ChangelogEmailRequest | null> {
   if (!GEMINI_API_KEY) return null;
 
-  const prompt = `Analyze this changelog and return JSON with educational explanations that help developers understand and learn from the changes:
+  const prompt = `You are a developer educator. Analyze this changelog and create a comprehensive guide that helps developers understand AND USE the new features. Focus heavily on practical, hands-on tutorials.
+
+Return JSON in this exact format:
 
 {
-  "tldr": "150-200 word summary of what changed",
+  "tldr": "150-200 word summary focusing on WHAT you can now DO that you couldn't before",
   "categories": {
     "critical_breaking_changes": [],
     "removals": [{"feature": "", "severity": "", "why": ""}],
@@ -276,37 +286,51 @@ async function analyzeChangelog(changelogText: string): Promise<ChangelogEmailRe
     "terminal_improvements": [],
     "api_changes": []
   },
-  "action_items": [],
+  "action_items": ["Specific things to try today, like 'Try the new /command to see X'"],
   "sentiment": "positive|neutral|critical",
   "educational": {
-    "why_it_matters": "2-3 sentences explaining the practical impact of these changes on daily developer workflow. What problems do they solve? How will this make development easier or better?",
+    "why_it_matters": "3-4 sentences explaining the PRACTICAL impact. What real problems does this solve? Give a concrete scenario where this helps.",
     "key_concepts": [
       {
-        "term": "technical term or feature name",
-        "explanation": "Clear, beginner-friendly explanation of what this concept means and why it exists",
-        "analogy": "Optional real-world analogy to help understand the concept"
+        "term": "Feature or concept name",
+        "explanation": "What it is and WHY you'd want to use it. Be specific about the use case.",
+        "analogy": "A relatable real-world comparison to make it click"
       }
     ],
     "tutorials": [
       {
-        "title": "Short tutorial title (e.g., 'How to use the new X feature')",
+        "title": "How to [accomplish specific task] with [new feature]",
         "difficulty": "beginner|intermediate|advanced",
-        "steps": ["Step 1: Do this...", "Step 2: Then do this..."],
-        "code_example": "Optional code snippet showing usage",
-        "tips": ["Pro tip or gotcha to be aware of"]
+        "steps": [
+          "Step 1: Open your terminal and...",
+          "Step 2: Type this command: ...",
+          "Step 3: You should see...",
+          "Step 4: Now try..."
+        ],
+        "code_example": "# Actual command or code to copy-paste\\nthe_actual_command --with-flags\\n# Expected output or result",
+        "tips": ["Common mistake to avoid", "Pro tip for power users"]
       }
     ],
-    "learn_more": ["Suggested topics to explore to deepen understanding"]
+    "quick_reference": [
+      {
+        "task": "What you want to do (e.g., 'Check model being used')",
+        "command": "The exact command or action (e.g., '/model' or 'claude --version')",
+        "note": "Optional brief note"
+      }
+    ],
+    "learn_more": ["Suggested topics with context on why they're worth exploring"]
   }
 }
 
-Guidelines for educational content:
-- Write for developers who may not know these concepts
-- Use clear, jargon-free language where possible
-- For key_concepts, pick 2-4 most important/confusing terms
-- For tutorials, create 1-2 mini-tutorials for the most significant features
-- Make tutorials actionable - something they can try immediately
-- Keep code examples short and focused (under 10 lines)
+CRITICAL GUIDELINES:
+1. TUTORIALS ARE THE MOST IMPORTANT PART - Create 2-4 detailed tutorials for the most useful features
+2. Every tutorial must have REAL, COPY-PASTEABLE commands or code examples
+3. Steps should be specific enough that someone can follow them without prior knowledge
+4. Include what the user should EXPECT TO SEE after each step
+5. The quick_reference section should be a cheat-sheet of new commands/features
+6. Write as if teaching a junior developer who just heard about this tool
+7. Avoid vague instructions like "configure as needed" - be specific
+8. If a feature has flags or options, show the most useful ones
 
 Changelog:
 ${changelogText}`;
@@ -622,21 +646,7 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
     const versionsToProcess = hasNewVersions ? [...newVersions].reverse() : [allVersions[0]];
 
     if (!hasNewVersions) {
-      // Check if the current version was already notified - skip if so
-      const checkStmt = db.prepare('SELECT notified FROM changelog_history WHERE version = ? AND source_id = ?');
-      const existingEntry = checkStmt.get(allVersions[0].version, source.id) as { notified: number } | undefined;
-
-      if (existingEntry?.notified === 1) {
-        console.log(`[Monitor] ${source.name}: Current version ${allVersions[0].version} already notified, skipping`);
-        return;
-      }
-
-      // Save the version if it doesn't exist yet (so markVersionNotified will work)
-      if (!existingEntry) {
-        saveVersion(allVersions[0].version, source.id);
-      }
-
-      console.log(`[Monitor] ${source.name}: Sending scheduled email for current version`);
+      console.log(`[Monitor] ${source.name}: Checking if scheduled email needed for current version`);
     } else {
       console.log(`[Monitor] ${source.name}: Processing ${versionsToProcess.length} new version(s): ${versionsToProcess.map(v => v.version).join(', ')}`);
     }
@@ -648,10 +658,14 @@ async function checkSourceForNewChangelog(source: ChangelogSource): Promise<void
     for (const versionInfo of versionsToProcess) {
       console.log(`[Monitor] Processing version ${versionInfo.version} for ${source.name}...`);
 
-      // Save version first
-      if (hasNewVersions) {
-        saveVersion(versionInfo.version, source.id);
+      // Check if this specific version was already notified - skip if so
+      if (isVersionNotified(versionInfo.version, source.id)) {
+        console.log(`[Monitor] ${source.name}: Version ${versionInfo.version} already notified, skipping`);
+        continue;
       }
+
+      // Save version first (if not already saved)
+      saveVersion(versionInfo.version, source.id);
 
       // Analyze the changelog
       console.log(`[Monitor] Analyzing changelog for ${source.name} ${versionInfo.version}...`);
@@ -866,7 +880,7 @@ app.post('/api/send-demo-email', async (req, res) => {
   }
 
   try {
-    const { voice = 'Charon', sourceId, includeSms } = req.body;
+    const { voice = 'Charon', sourceId, includeSms } = req.body || {};
     console.log('[Demo] Voice:', voice, 'SourceId:', sourceId, 'includeSms:', includeSms);
 
     // Get source URL
@@ -1381,6 +1395,11 @@ interface ChangelogEmailRequest {
       code_example?: string;
       tips: string[];
     }[];
+    quick_reference?: {
+      task: string;
+      command: string;
+      note?: string;
+    }[];
     learn_more: string[];
   };
 }
@@ -1397,12 +1416,12 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px; }
     h1 { color: #d97706; }
-    h2 { color: #374151; margin-top: 24px; }
+    h2 { color: #374151; margin-top: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
     h3 { color: #4b5563; margin-top: 16px; margin-bottom: 8px; }
     .tldr { background: #fef3c7; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
-    .section { margin-bottom: 20px; }
+    .section { margin-bottom: 24px; }
     .breaking { border-left: 4px solid #ef4444; padding-left: 12px; background: #fef2f2; padding: 12px; border-radius: 0 8px 8px 0; }
     .feature { border-left: 4px solid #14b8a6; padding-left: 12px; }
     .fix { border-left: 4px solid #6b7280; padding-left: 12px; }
@@ -1410,27 +1429,38 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
     li { margin-bottom: 8px; }
     .audio-note { background: #e0f2fe; padding: 12px; border-radius: 8px; margin-top: 16px; }
     .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280; }
-    .why-matters { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
-    .why-matters strong { color: #fef3c7; }
+    .why-matters { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 24px; }
+    .why-matters strong { color: #fef3c7; font-size: 18px; }
     .concept-card { background: #f0fdf4; border: 1px solid #86efac; padding: 14px; border-radius: 8px; margin-bottom: 12px; }
     .concept-term { font-weight: bold; color: #166534; font-size: 16px; }
     .concept-explanation { margin-top: 6px; }
     .concept-analogy { margin-top: 8px; font-style: italic; color: #166534; background: #dcfce7; padding: 8px; border-radius: 4px; }
-    .tutorial-card { background: #fefce8; border: 1px solid #fde047; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
-    .tutorial-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .tutorial-title { font-weight: bold; color: #854d0e; font-size: 16px; }
-    .difficulty-badge { font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
+    .tutorial-card { background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%); border: 2px solid #eab308; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .tutorial-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .tutorial-title { font-weight: bold; color: #854d0e; font-size: 18px; }
+    .difficulty-badge { font-size: 11px; padding: 4px 10px; border-radius: 12px; font-weight: 600; text-transform: uppercase; }
     .difficulty-beginner { background: #dcfce7; color: #166534; }
     .difficulty-intermediate { background: #fef3c7; color: #92400e; }
     .difficulty-advanced { background: #fee2e2; color: #991b1b; }
-    .tutorial-steps { margin: 12px 0; }
-    .tutorial-steps li { margin-bottom: 6px; }
-    .code-block { background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 6px; font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; margin: 12px 0; }
-    .tips-box { background: #eff6ff; border-left: 3px solid #3b82f6; padding: 10px 12px; margin-top: 12px; }
+    .tutorial-steps { margin: 16px 0; background: white; padding: 16px; border-radius: 8px; }
+    .tutorial-steps li { margin-bottom: 10px; padding-left: 4px; }
+    .code-block { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; margin: 16px 0; border: 1px solid #334155; }
+    .tips-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 14px; margin-top: 14px; border-radius: 0 8px 8px 0; }
     .tips-box strong { color: #1d4ed8; }
     .learn-more { background: #f5f3ff; padding: 14px; border-radius: 8px; margin-top: 20px; }
     .learn-more-title { color: #6d28d9; font-weight: bold; margin-bottom: 8px; }
     .learn-more ul { margin: 0; }
+    .quick-ref { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+    .quick-ref-title { background: #1e293b; color: white; padding: 12px 16px; font-weight: bold; font-size: 16px; }
+    .quick-ref-table { width: 100%; border-collapse: collapse; }
+    .quick-ref-table th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    .quick-ref-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+    .quick-ref-table tr:last-child td { border-bottom: none; }
+    .quick-ref-task { color: #334155; }
+    .quick-ref-command { font-family: 'Monaco', 'Menlo', monospace; background: #1e293b; color: #22d3ee; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+    .quick-ref-note { color: #64748b; font-size: 13px; font-style: italic; }
+    .try-it-banner { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center; }
+    .try-it-banner strong { font-size: 16px; }
   </style>
 </head>
 <body>
@@ -1498,40 +1528,50 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
 
   // Educational content sections
   if (educational) {
-    // Why It Matters
+    // Why It Matters - First to set context
     if (educational.why_it_matters) {
       html += `
   <div class="why-matters">
-    <strong>💡 Why This Matters</strong>
-    <p style="margin: 8px 0 0 0;">${educational.why_it_matters}</p>
+    <strong>💡 Why This Matters To You</strong>
+    <p style="margin: 10px 0 0 0; font-size: 15px;">${educational.why_it_matters}</p>
   </div>
 `;
     }
 
-    // Key Concepts
-    if (educational.key_concepts && educational.key_concepts.length > 0) {
+    // Quick Reference - Cheat sheet at the top for easy scanning
+    const quickRef = educational.quick_reference as { task: string; command: string; note?: string }[] | undefined;
+    if (quickRef && quickRef.length > 0) {
       html += `
-  <div class="section">
-    <h2>📚 Key Concepts Explained</h2>
-`;
-      for (const concept of educational.key_concepts) {
-        html += `
-    <div class="concept-card">
-      <div class="concept-term">${concept.term}</div>
-      <div class="concept-explanation">${concept.explanation}</div>
-      ${concept.analogy ? `<div class="concept-analogy">💭 Think of it like: ${concept.analogy}</div>` : ''}
-    </div>
-`;
-      }
-      html += `  </div>
+  <div class="quick-ref">
+    <div class="quick-ref-title">⚡ Quick Reference - New Commands & Features</div>
+    <table class="quick-ref-table">
+      <thead>
+        <tr>
+          <th>What you want to do</th>
+          <th>Command / Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${quickRef.map((item) => `
+        <tr>
+          <td class="quick-ref-task">${item.task}</td>
+          <td>
+            <code class="quick-ref-command">${item.command.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>
+            ${item.note ? `<div class="quick-ref-note">${item.note}</div>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
 `;
     }
 
-    // Tutorials
+    // Tutorials - THE MAIN EDUCATIONAL CONTENT
     if (educational.tutorials && educational.tutorials.length > 0) {
       html += `
   <div class="section">
-    <h2>🎓 Mini-Tutorials</h2>
+    <h2>🎓 Step-by-Step Tutorials</h2>
+    <p style="color: #6b7280; margin-bottom: 16px;">Follow these guides to start using the new features right away:</p>
 `;
       for (const tutorial of educational.tutorials) {
         const difficultyClass = `difficulty-${tutorial.difficulty}`;
@@ -1547,7 +1587,7 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
       ${tutorial.code_example ? `<div class="code-block">${tutorial.code_example.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : ''}
       ${tutorial.tips && tutorial.tips.length > 0 ? `
       <div class="tips-box">
-        <strong>💡 Tips:</strong>
+        <strong>💡 Pro Tips:</strong>
         <ul style="margin: 4px 0 0 0; padding-left: 16px;">
           ${tutorial.tips.map((tip) => `<li>${tip}</li>`).join('')}
         </ul>
@@ -1559,11 +1599,41 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
 `;
     }
 
+    // Try It Banner
+    if (educational.tutorials && educational.tutorials.length > 0) {
+      html += `
+  <div class="try-it-banner">
+    <strong>🚀 Try it now!</strong>
+    <p style="margin: 8px 0 0 0;">Open your terminal and test these new features. The best way to learn is by doing!</p>
+  </div>
+`;
+    }
+
+    // Key Concepts - For understanding the "why"
+    if (educational.key_concepts && educational.key_concepts.length > 0) {
+      html += `
+  <div class="section">
+    <h2>📚 Understanding the Concepts</h2>
+    <p style="color: #6b7280; margin-bottom: 12px;">Not sure what these terms mean? Here's a quick explainer:</p>
+`;
+      for (const concept of educational.key_concepts) {
+        html += `
+    <div class="concept-card">
+      <div class="concept-term">${concept.term}</div>
+      <div class="concept-explanation">${concept.explanation}</div>
+      ${concept.analogy ? `<div class="concept-analogy">💭 Think of it like: ${concept.analogy}</div>` : ''}
+    </div>
+`;
+      }
+      html += `  </div>
+`;
+    }
+
     // Learn More
     if (educational.learn_more && educational.learn_more.length > 0) {
       html += `
   <div class="learn-more">
-    <div class="learn-more-title">🔍 Want to Learn More?</div>
+    <div class="learn-more-title">🔍 Want to Go Deeper?</div>
     <ul>
       ${educational.learn_more.map((topic) => `<li>${topic}</li>`).join('')}
     </ul>
@@ -1574,11 +1644,11 @@ function generateEmailHtml(data: ChangelogEmailRequest): string {
 
   html += `
   <div class="audio-note">
-    🎧 <strong>Audio summary attached!</strong> Listen to the changelog summary on the go.
+    🎧 <strong>Audio summary attached!</strong> Listen to the changelog summary while you commute or exercise.
   </div>
 
   <div class="footer">
-    <p>This email was automatically sent by Changelog Master</p>
+    <p>This email was automatically generated by Changelog Master to help you stay up-to-date and learn new features quickly.</p>
   </div>
 </body>
 </html>
